@@ -17,6 +17,45 @@ test("web-tool - describeCommandStatus formats readable action summaries", () =>
   );
 });
 
+test("web-tool - renderCall and renderResult render collapsed and expanded states", () => {
+  const fakeProvider = {
+    async execute() {
+      return { results: [] };
+    },
+    async search() {
+      return { results: [] };
+    },
+    getSessionId() {
+      return "test_session";
+    },
+    setSessionId() {},
+  };
+
+  const tool = createWebTool(fakeProvider);
+
+  // Test renderCall
+  const callComp = tool.renderCall!({ search_query: [{ q: "rust release" }] }, {} as any, {} as any);
+  assert.ok(callComp);
+
+  // Test collapsed renderResult
+  const collapsedComp = tool.renderResult!(
+    { content: [{ type: "text", text: "Full content" }], details: { resultCount: 5 } },
+    { expanded: false },
+    {} as any,
+    {} as any
+  );
+  assert.ok(collapsedComp);
+
+  // Test expanded renderResult
+  const expandedComp = tool.renderResult!(
+    { content: [{ type: "text", text: "Full content output" }], details: { resultCount: 5 } },
+    { expanded: true },
+    {} as any,
+    {} as any
+  );
+  assert.ok(expandedComp);
+});
+
 test("web-tool - createWebTool invokes onUpdate progress handler", async () => {
   let executedCommand: unknown = null;
   const updates: any[] = [];

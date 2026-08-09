@@ -1,4 +1,5 @@
 import type { ToolDefinition } from "@earendil-works/pi-coding-agent";
+import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import type { WebSearchProvider } from "./provider";
 import type { WebRunCommand } from "./commands";
@@ -117,6 +118,36 @@ export function createWebTool(provider: WebSearchProvider): ToolDefinition {
         };
       }
     },
+    renderCall(args, theme, _context) {
+      const command = args as WebRunCommand;
+      const statusMsg = describeCommandStatus(command);
+      const title = theme?.fg ? theme.fg("toolTitle", theme.bold("web ")) : "web ";
+      const status = theme?.fg ? theme.fg("muted", statusMsg) : statusMsg;
+      return new Text(title + status, 0, 0);
+    },
+    renderResult(result, options, theme, _context) {
+      const { expanded } = options || {};
+      const isError = result.isError || result.details?.error;
+      const resultCount = (result.details?.resultCount as number) ?? 0;
+
+      if (isError) {
+        const errorText = theme?.fg
+          ? theme.fg("error", `✖ Web action failed: ${result.details?.error ?? "Error"}`)
+          : `✖ Web action failed`;
+        return new Text(errorText, 0, 0);
+      }
+
+      if (!expanded) {
+        const successHeader = theme?.fg
+          ? theme.fg("success", `✓ Web action complete (${resultCount} results) `)
+          : `✓ Web action complete (${resultCount} results) `;
+        const hint = theme?.fg ? theme.fg("dim", "(Ctrl+O to expand)") : "(Ctrl+O to expand)";
+        return new Text(successHeader + hint, 0, 0);
+      }
+
+      const fullText = result.content?.[0]?.text ?? "";
+      return new Text(fullText, 0, 0);
+    },
   };
 }
 
@@ -161,6 +192,35 @@ export function createWebSearchCompatTool(provider: WebSearchProvider): ToolDefi
           isError: true,
         };
       }
+    },
+    renderCall(args, theme, _context) {
+      const query = (args as { query?: string }).query ?? "";
+      const title = theme?.fg ? theme.fg("toolTitle", theme.bold("web_search ")) : "web_search ";
+      const status = theme?.fg ? theme.fg("muted", `Searching web for "${query}"...`) : `Searching web for "${query}"...`;
+      return new Text(title + status, 0, 0);
+    },
+    renderResult(result, options, theme, _context) {
+      const { expanded } = options || {};
+      const isError = result.isError || result.details?.error;
+      const resultCount = (result.details?.resultCount as number) ?? 0;
+
+      if (isError) {
+        const errorText = theme?.fg
+          ? theme.fg("error", `✖ Search failed: ${result.details?.error ?? "Error"}`)
+          : `✖ Search failed`;
+        return new Text(errorText, 0, 0);
+      }
+
+      if (!expanded) {
+        const successHeader = theme?.fg
+          ? theme.fg("success", `✓ Search complete (${resultCount} results) `)
+          : `✓ Search complete (${resultCount} results) `;
+        const hint = theme?.fg ? theme.fg("dim", "(Ctrl+O to expand)") : "(Ctrl+O to expand)";
+        return new Text(successHeader + hint, 0, 0);
+      }
+
+      const fullText = result.content?.[0]?.text ?? "";
+      return new Text(fullText, 0, 0);
     },
   };
 }
