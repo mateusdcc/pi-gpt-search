@@ -8,7 +8,13 @@
 
 ## ⚡ Quick Start: 1-Line Installation
 
-Install globally using `pi install`:
+Install via npm:
+
+```bash
+pi install npm:pi-gpt-search
+```
+
+Or install via GitHub:
 
 ```bash
 pi install https://github.com/mateusdcc/pi-gpt-search
@@ -17,13 +23,13 @@ pi install https://github.com/mateusdcc/pi-gpt-search
 Or install project-locally for your current repository (`-l` flag):
 
 ```bash
-pi install https://github.com/mateusdcc/pi-gpt-search -l
+pi install npm:pi-gpt-search -l
 ```
 
 Or try it temporarily in a single session without installing:
 
 ```bash
-pi -e git:github.com/mateusdcc/pi-gpt-search
+pi -e npm:pi-gpt-search
 ```
 
 ---
