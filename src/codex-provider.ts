@@ -84,6 +84,7 @@ export interface CodexWebSearchProviderOptions {
   sessionId?: string;
   model?: string;
   defaultContextMode?: SearchContextMode;
+  maxRetries?: number;
 }
 
 const DEFAULT_ENDPOINT = "https://chatgpt.com/backend-api/codex/alpha/search";
@@ -97,6 +98,7 @@ export class CodexWebSearchProvider implements WebSearchProvider {
   private currentSessionId: string;
   private model: string;
   private defaultContextMode: SearchContextMode;
+  private maxRetries: number;
 
   constructor(options?: CodexWebSearchProviderOptions) {
     this.endpoint = options?.endpoint ?? DEFAULT_ENDPOINT;
@@ -104,6 +106,7 @@ export class CodexWebSearchProvider implements WebSearchProvider {
     this.fetchImpl = options?.customFetch ?? globalThis.fetch;
     this.model = options?.model ?? DEFAULT_MODEL;
     this.defaultContextMode = options?.defaultContextMode ?? "none";
+    this.maxRetries = options?.maxRetries ?? 2;
     this.currentSessionId =
       options?.sessionId ?? `search_session_${Math.random().toString(36).substring(2, 10)}`;
   }
@@ -181,12 +184,30 @@ export class CodexWebSearchProvider implements WebSearchProvider {
     }
 
     try {
-      const response = await this.fetchImpl(this.endpoint, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
+      let response: Response | null = null;
+      let attempt = 0;
+
+      while (attempt <= this.maxRetries) {
+        attempt++;
+        response = await this.fetchImpl(this.endpoint, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+
+        if (response.status === 502 || response.status === 503 || response.status === 504) {
+          if (attempt <= this.maxRetries) {
+            await new Promise((res) => setTimeout(res, 500 * attempt));
+            continue;
+          }
+        }
+        break;
+      }
+
+      if (!response) {
+        throw new CodexHttpError(500, "No response received");
+      }
 
       const elapsedMs = Date.now() - startTime;
 
