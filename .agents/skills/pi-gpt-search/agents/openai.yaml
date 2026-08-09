@@ -1,0 +1,6 @@
+interface:
+  display_name: "Pi Gpt Search"
+  short_description: "Repo-specific patterns and workflows for pi-gpt-search"
+  default_prompt: "Use the pi-gpt-search repo skill to follow existing architecture, testing, and workflow conventions."
+policy:
+  allow_implicit_invocation: true
