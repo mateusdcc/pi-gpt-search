@@ -38,6 +38,7 @@ pi -e npm:pi-gpt-search
 
 - 🚫 **Zero GPT Tokens Spent:** Pure web retrieval via OpenAI's backend endpoint. No GPT/Codex LLM turns are executed, meaning **0 input tokens, 0 output tokens, and 0 reasoning credits are billed**.
 - 🧠 **Model Sovereign:** Your active Pi model (e.g., Gemini 3.5 Flash / Gemini 3.1 Pro) remains the sole reasoning model.
+- 💬 **Slash Command & LLM Tool:** Works both automatically as an LLM tool (`web_search`) and as a direct user command (`/gpt-search`).
 - 🔓 **Credential Reuse:** Automatically uses your existing `codex login` session (`~/.codex/auth.json`) or custom `.env` tokens.
 - 🛡️ **Data Privacy:** Query-only by default. Does not send conversation history, project files, or system prompts to search.
 
@@ -54,38 +55,35 @@ Pi Coding Agent
                      └── Gemini continues reasoning & answers user
 ```
 
+---
+
+## 💻 Usage & Commands
+
+### 1. Direct Slash Command: `/gpt-search`
+
+Perform a direct web search immediately without spending LLM tokens:
+
 ```text
-  +-------------+
-  |    User     |
-  +------+------+
-         | "Search the web for current Rust release notes"
-         v
-  +-------------+
-  |  Pi Agent   |
-  +------+------+
-         |
-         v
-  +-------------+       LLM Tool Call (web_search)      +--------------------------+
-  |   Gemini    | -----------------------------------> | web_search Tool (tool.ts)|
-  +------+------+                                      +------------+-------------+
-         ^                                                          |
-         |                                                          v
-         |                                             +--------------------------+
-         |                                             |  CodexWebSearchProvider  |
-         |                                             |   (codex-provider.ts)    |
-         |                                             +------------+-------------+
-         |                                                          |
-         |  Structured Search Results                               |  HTTPS POST (Zero GPT)
-         |  (Title, URL, Snippet)                                   |  Bearer ChatGPT Token
-         |                                                          v
-         |                                             +--------------------------+
-         |                                             | OpenAI Standalone Search |
-         | <------------------------------------------ |  (/codex/alpha/search)   |
-         |                                             +--------------------------+
-         v
-  +-------------+
-  | Final Answer|
-  +-------------+
+/gpt-search give me the repo link to codex
+```
+
+```text
+/gpt-search Rust 1.97 release notes
+```
+
+### 2. Automatic LLM Tool: `web_search`
+
+Ask any model a question requiring current facts:
+
+```bash
+pi --model antigravity/gemini-3.5-flash "What is the latest release of Rust and what changed?"
+```
+
+### Example Log Output (with `PI_WEB_SEARCH_DEBUG=1`):
+
+```text
+[PI_WEB_SEARCH_DEBUG] req_id=maqk8a5 query="latest Rust release version and date 2026" provider=codex
+[PI_WEB_SEARCH_DEBUG] req_id=maqk8a5 status=200 elapsed_ms=1863 results=41
 ```
 
 ---
@@ -134,23 +132,6 @@ PI_WEB_SEARCH_DEBUG=1
 ```
 
 > **Security Note:** Never commit `.env` to Git. `.env` is listed in `.gitignore`.
-
----
-
-## 💻 Usage
-
-Run `pi` with any model (for example Gemini) and ask a question requiring live web information:
-
-```bash
-pi --model antigravity/gemini-3.5-flash "What is the latest release of Rust and what changed?"
-```
-
-### Example Log Output (with `PI_WEB_SEARCH_DEBUG=1`):
-
-```text
-[PI_WEB_SEARCH_DEBUG] req_id=maqk8a5 query="latest Rust release version and date 2026" provider=codex
-[PI_WEB_SEARCH_DEBUG] req_id=maqk8a5 status=200 elapsed_ms=1863 results=41
-```
 
 ---
 
