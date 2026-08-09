@@ -2,7 +2,7 @@
 
 > **Native, Model-Independent Web Research Harness for Pi powered by OpenAI Codex Standalone Search Engine.**
 
-`pi-gpt-search` gives **any** active Pi model (Gemini, Claude, DeepSeek, local models, OpenRouter) real-time, multi-step web research capabilities using OpenAI Codex's standalone search and browsing infrastructure—with **Zero Additional GPT Agent Turns**.
+`pi-gpt-search` gives **any** active Pi model (Gemini, Claude, DeepSeek, local models, OpenRouter) real-time web search and multi-step research capabilities using OpenAI Codex's standalone search and browsing infrastructure - with **Zero Additional GPT Agent Turns**.
 
 ---
 
@@ -28,13 +28,19 @@ pi -ne -e https://github.com/mateusdcc/pi-gpt-search#feat/codex-web-harness
 
 ---
 
-## ⚡ Architecture & Zero-Agent-Turn Guarantee
+## 🛠️ Commands & Architecture Flow
+
+### 1. `web_search` (Simple Single-Query Search)
+
+The legacy, single-query web search tool for quick lookups. It accepts a search query string and returns synthesized web results with clickable inline citations.
+
+#### Architecture Diagram: `web_search`
 
 ```text
 Pi Coding Agent (Active Model: Gemini / Claude / DeepSeek / etc.)
      │
      ▼
-web({ search_query, open, find, click, response_length })
+web_search({ query: "Rust 1.97 release notes" })
      │
      ▼
 Codex Standalone Search Endpoint (/backend-api/codex/alpha/search)
@@ -43,23 +49,54 @@ Codex Standalone Search Endpoint (/backend-api/codex/alpha/search)
 Model-Oriented Output + OSC 8 Hyperlinks + Structured Details
      │
      ▼
-Active Model (Evaluates evidence, decides next web action or final answer)
+Active Model (Receives web answer with citations)
 ```
 
-- **Zero Additional GPT Agent Turns:** The extension does not invoke a separate GPT/Codex agent turn to perform web research. It calls OpenAI Codex's standalone search endpoint directly.
-- **Model-Independent Reasoning:** Your active Pi session model controls the research loop, deciding when to search, open documents, find patterns, follow links, or finish.
-- **Clickable Terminal Hyperlinks (Cmd+Click):** Inline citations `[1]`, `[2]` and `Sources:` links are formatted as OSC 8 terminal escape sequences. Holding `Cmd`/`Ctrl` reveals the target URL and clicking opens it in your default browser.
-- **Compact Collapsible TUI Display:** Tool calls collapse into a single-line status row (`✓ Web action complete (N results) (Ctrl+O to expand)`).
-- **Context Isolation:** Raw HTML/JSON data is excluded from LLM prompt memory, keeping context overhead near zero while storing full details in local TUI state.
-- **Session Reference Continuity:** Session IDs map across multi-step research calls, preserving `ref_id` targets across `search` -> `open` -> `find` -> `click` actions.
+#### Tool Input Example
+
+```json
+{
+  "query": "Rust 1.97 release notes"
+}
+```
+
+*Internally, `web_search` automatically wraps the query and executes `web({ search_query: [{ q: "query" }] })`.*
 
 ---
 
-## 🛠️ Model Tools & Commands
+### 2. `web` (Multi-Step Web Research Harness)
 
-### 1. Primary Model Tool: `web`
+The advanced research harness for deep, iterative web investigation. It empowers the active model to execute multi-query searches, open specific web documents, find patterns, follow links, and control response length - all within a persistent research session.
 
-Supported web research actions:
+#### Architecture Diagram: `web` Research Harness
+
+```text
+Pi Coding Agent (Active Model: Gemini / Claude / DeepSeek / etc.)
+     │
+     │ 1. Search Query
+     ▼
+web({ search_query: [{ q: "OpenAI Codex GitHub repo", domains: ["github.com"] }] })
+     │
+     ▼
+Codex Standalone Search Endpoint (/backend-api/codex/alpha/search)
+     │
+     │ 2. Returns Ref IDs (e.g. "turn0search0")
+     ▼
+Active Model (Evaluates results, decides to inspect document)
+     │
+     │ 3. Open Document & Find Pattern
+     ▼
+web({ open: [{ ref_id: "turn0search0" }], find: [{ ref_id: "turn0search0", pattern: "terminal" }] })
+     │
+     ▼
+Codex Standalone Search Endpoint (/backend-api/codex/alpha/search)
+     │
+     │ 4. Full Document Context + Pattern Matches
+     ▼
+Active Model (Synthesizes deep research answer or continues research)
+```
+
+#### Tool Interface Specification
 
 ```typescript
 interface WebRunCommand {
@@ -71,48 +108,37 @@ interface WebRunCommand {
 }
 ```
 
-Example usage by the active model:
+#### Example Multi-Step Research Flow
 
-```json
-{
-  "search_query": [
-    { "q": "OpenAI Codex GitHub repository", "domains": ["github.com"] }
-  ],
-  "response_length": "medium"
-}
-```
+1. **Perform Targeted Search:**
+   ```json
+   {
+     "search_query": [
+       { "q": "OpenAI Codex GitHub repository", "domains": ["github.com"] }
+     ],
+     "response_length": "medium"
+   }
+   ```
 
-Followed by opening the retrieved reference in the same session:
+2. **Open Retrieved Reference Document:**
+   ```json
+   {
+     "open": [
+       { "ref_id": "turn0search0" }
+     ]
+   }
+   ```
 
-```json
-{
-  "open": [
-    { "ref_id": "turn0search0" }
-  ]
-}
-```
+3. **Search for Specific Pattern inside Document:**
+   ```json
+   {
+     "find": [
+       { "ref_id": "turn1view0", "pattern": "terminal" }
+     ]
+   }
+   ```
 
-Followed by finding specific patterns inside the document:
-
-```json
-{
-  "find": [
-    { "ref_id": "turn1view0", "pattern": "terminal" }
-  ]
-}
-```
-
-### 2. Compatibility Tool: `web_search`
-
-Legacy wrapper for simple single-query lookups:
-
-```json
-{
-  "query": "Rust 1.97 release notes"
-}
-```
-
-Internally translates into `web({ search_query: [{ q: "query" }] })`.
+---
 
 ### 3. Direct User Slash Command: `/gpt-search`
 
@@ -124,7 +150,18 @@ Perform direct web searches from the Pi prompt without consuming LLM reasoning t
 
 ---
 
-## 🔑 Authentication
+## ⚡ Core Capabilities & Zero-Agent-Turn Guarantee
+
+- **Zero Additional GPT Agent Turns:** The extension does not invoke a separate GPT/Codex agent turn to perform web research. It calls OpenAI Codex's standalone search endpoint directly.
+- **Model-Independent Reasoning:** Your active Pi session model controls the research loop, deciding when to search, open documents, find patterns, follow links, or finish.
+- **Clickable Terminal Hyperlinks (Cmd+Click):** Inline citations `[1]`, `[2]` and `Sources:` links are formatted as OSC 8 terminal escape sequences. Holding `Cmd`/`Ctrl` reveals the target URL and clicking opens it in your default browser.
+- **Compact Collapsible TUI Display:** Tool calls collapse into a single-line status row (`✓ Web action complete (N results) (Ctrl+O to expand)`).
+- **Context Isolation:** Raw HTML/JSON data is excluded from LLM prompt memory, keeping context overhead near zero while storing full details in local TUI state.
+- **Session Reference Continuity:** Session IDs map across multi-step research calls, preserving `ref_id` targets across `search` -> `open` -> `find` -> `click` actions.
+
+---
+
+## 🔐 Authentication
 
 Automatically resolves authentication in order of priority:
 1. `CODEX_ACCESS_TOKEN` / `CODEX_ACCOUNT_ID` in `.env` or process environment.
@@ -152,12 +189,12 @@ npm test
 
 ---
 
-## 📄 Documentation
+## 📖 Documentation
 
 - [HOW-IT-WORKS.md](./HOW-IT-WORKS.md) - Complete technical breakdown of architecture, data flow, TUI renderers, context isolation, and error handling.
 
 ---
 
-## 📄 License
+## 📜 License
 
 MIT License.

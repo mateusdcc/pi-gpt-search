@@ -6,6 +6,66 @@
 
 ## 🏗️ System Architecture & Data Flow
 
+### 1. Simple Single-Query Search Flow (`web_search`)
+
+The `web_search` tool provides a simple interface for single-query searches (the primary mode from earlier releases). The active Pi model sends a single search query string, which is formatted into a search action and executed against the OpenAI standalone search engine endpoint.
+
+```text
+               +-------------------------------------------------------+
+               |                       Pi Agent                        |
+               +---------------------------+---------------------------+
+                                           |
+                                           v
+               +-------------------------------------------------------+
+               |        Active Pi Model (Reasoning Engine)             |
+               |      (Gemini / Claude / DeepSeek / Ollama / etc.)     |
+               +---------------------------+---------------------------+
+                                           |
+                                           v Tool Call: web_search({ query: "..." })
+               +-------------------------------------------------------+
+               |              web_search Compatibility Tool            |
+               |                       (web-tool.ts)                   |
+               |     - Wraps query into web({ search_query: ... })     |
+               |     - Emits live TUI status updates via onUpdate      |
+               +---------------------------+---------------------------+
+                                           |
+                                           v Forward WebRunCommand DTO
+               +-------------------------------------------------------+
+               |                CodexWebSearchProvider                 |
+               |                  (codex-provider.ts)                  |
+               |     - Resolves auth credentials (~/.codex/auth.json)  |
+               |     - Maintains session identity mapping             |
+               +---------------------------+---------------------------+
+                                           |
+                                           | 1. Serialize payload
+                                           | 2. HTTPS POST (alpha/search)
+                                           v
+               +-------------------------------------------------------+
+               |       OpenAI Standalone Web Search Endpoint           |
+               |    (https://chatgpt.com/backend-api/codex/alpha/search) |
+               +---------------------------+---------------------------+
+                                           |
+                                           v Returns JSON (output, results)
+               +-------------------------------------------------------+
+               |            Output Formatter & Citation Engine          |
+               |                  (output.ts & normalize.ts)           |
+               |     - Preserves raw model-oriented output             |
+               |     - Replaces Unicode markers with OSC 8 hyperlinks  |
+               +---------------------------+---------------------------+
+                                           |
+                                           v Clean text + OSC 8 hyperlinks + TUI details
+               +-------------------------------------------------------+
+               |        Active Pi Model (Reasoning Engine)             |
+               |      Receives web search answer with inline citations |
+               +-------------------------------------------------------+
+```
+
+---
+
+### 2. Multi-Step Web Research Harness Flow (`web`)
+
+The `web` tool introduces a full research harness capability. Instead of stopping after a single search query, the active model can execute rich, multi-action research commands (`search_query`, `open`, `find`, `click`, `response_length`) across a persistent research session to investigate documents in depth.
+
 ```text
                +-------------------------------------------------------+
                |                       Pi Agent                        |
@@ -61,16 +121,18 @@
 
 ---
 
-## 🧩 Core Modules & Responsibilities
+## 🛠️ Core Modules & Responsibilities
 
 ### 1. Extension Entrypoint (`src/index.ts`)
 Handles Pi Extension registration cleanly:
-- Registers primary `web` research tool.
-- Registers `web_search` compatibility tool wrapper.
+- Registers compatibility tool wrapper `web_search`.
+- Registers primary research harness tool `web`.
 - Registers direct user slash command `/gpt-search`.
 
-### 2. Model-Facing Research Tool (`src/web-tool.ts`)
-Exposes rich research actions (`search_query`, `open`, `find`, `click`, `response_length`) to any active Pi session model:
+### 2. Model-Facing Research Tools (`src/web-tool.ts`)
+Exposes both single-query search and rich research actions to any active Pi session model:
+- **Single-Query Search (`web_search`):** Accepts `{ query: string }` and translates it into a single-query `search_query` execution.
+- **Rich Research Harness (`web`):** Supports full research actions (`search_query`, `open`, `find`, `click`, `response_length`).
 - **TUI Progress Feedback:** Calls `onUpdate()` to report live stage descriptions (e.g. `Searching web for "query"...`, `Opening document turn0search0...`).
 - **Collapsible Display (`renderCall` & `renderResult`):** Collapses completed execution rows to a single line `✓ Web action complete (N results) (Ctrl+O to expand)`.
 - **System Guidance:** Teaches the active model when to browse, how to execute multi-step research, and how to cite sources inline.
@@ -118,7 +180,7 @@ Typed error classes:
 
 ---
 
-## 🔒 Context Isolation & Token Efficiency
+## 🧠 Context Isolation & Token Efficiency
 
 1. **Raw Web Data Excluded:** Raw HTML, unparsed crawl payloads, HTTP headers, and raw API JSON arrays never enter the active model's conversation context window.
 2. **Pruned LLM Memory:** Only the cleaned model-oriented summary text (`content[0].text`) with inline citations enters the active model's prompt memory.
