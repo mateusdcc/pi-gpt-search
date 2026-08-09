@@ -1,35 +1,49 @@
 export interface SearchResult {
+  type?: string;
+  refId?: string;
+  ref_id?: string;
+  url?: string;
   title?: string;
-  url: string;
   snippet?: string;
   domain?: string;
-  refId?: string;
+  raw?: unknown;
 }
 
 export interface SearchResponse {
-  results: SearchResult[];
   output?: string;
+  results: SearchResult[];
+  encrypted_output?: string;
+  raw?: Record<string, unknown>;
 }
 
 export function normalizeRawSearchResult(item: unknown): SearchResult | null {
   if (typeof item !== "object" || item === null) return null;
   const obj = item as Record<string, unknown>;
-  const url = typeof obj.url === "string" ? obj.url.trim() : "";
-  if (!url) return null;
 
-  const result: SearchResult = { url };
-  if (typeof obj.title === "string" && obj.title.trim()) {
-    result.title = obj.title.trim();
+  const url = typeof obj.url === "string" ? obj.url.trim() : undefined;
+  const refId = typeof obj.ref_id === "string" ? obj.ref_id.trim() : undefined;
+  const title = typeof obj.title === "string" ? obj.title.trim() : undefined;
+  const snippet = typeof obj.snippet === "string" ? obj.snippet.trim() : undefined;
+  const domain = typeof obj.domain === "string" ? obj.domain.trim() : undefined;
+  const type = typeof obj.type === "string" ? obj.type.trim() : undefined;
+
+  if (!url && !refId && !title && !snippet) {
+    return null;
   }
-  if (typeof obj.snippet === "string" && obj.snippet.trim()) {
-    result.snippet = obj.snippet.trim();
+
+  const result: SearchResult = {
+    raw: item,
+  };
+
+  if (url) result.url = url;
+  if (refId) {
+    result.refId = refId;
+    result.ref_id = refId;
   }
-  if (typeof obj.domain === "string" && obj.domain.trim()) {
-    result.domain = obj.domain.trim();
-  }
-  if (typeof obj.ref_id === "string" && obj.ref_id.trim()) {
-    result.refId = obj.ref_id.trim();
-  }
+  if (title) result.title = title;
+  if (snippet) result.snippet = snippet;
+  if (domain) result.domain = domain;
+  if (type) result.type = type;
 
   return result;
 }
@@ -50,6 +64,13 @@ export function normalizeSearchResponseBody(body: unknown): SearchResponse {
     }
   }
 
-  const output = typeof obj.output === "string" ? obj.output.trim() : undefined;
-  return { results, output };
+  const output = typeof obj.output === "string" ? obj.output : undefined;
+  const encrypted_output = typeof obj.encrypted_output === "string" ? obj.encrypted_output : undefined;
+
+  return {
+    output,
+    results,
+    encrypted_output,
+    raw: obj,
+  };
 }
