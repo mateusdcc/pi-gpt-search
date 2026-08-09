@@ -2,34 +2,28 @@
 
 > **Native, Model-Independent Web Research Harness for Pi powered by OpenAI Codex Standalone Search Engine.**
 
-`pi-gpt-search` gives **any** Pi model (Gemini, Claude, local models, OpenRouter) real-time, multi-step web research capabilities using OpenAI Codex's standalone search and browsing infrastructure—with **Zero Additional GPT Agent Turns**.
+`pi-gpt-search` gives **any** active Pi model (Gemini, Claude, DeepSeek, local models, OpenRouter) real-time, multi-step web research capabilities using OpenAI Codex's standalone search and browsing infrastructure—with **Zero Additional GPT Agent Turns**.
 
 ---
 
 ## ⚡ Quick Start: 1-Line Installation
 
-Install via npm:
+Install from feature branch via GitHub:
 
 ```bash
-pi install npm:pi-gpt-search
-```
-
-Or install via GitHub:
-
-```bash
-pi install https://github.com/mateusdcc/pi-gpt-search
+pi install https://github.com/mateusdcc/pi-gpt-search#feat/codex-web-harness
 ```
 
 Or install project-locally for your current repository (`-l` flag):
 
 ```bash
-pi install npm:pi-gpt-search -l
+pi install https://github.com/mateusdcc/pi-gpt-search#feat/codex-web-harness -l
 ```
 
 Or try it temporarily in a single session without installing:
 
 ```bash
-pi -ne -e npm:pi-gpt-search
+pi -ne -e https://github.com/mateusdcc/pi-gpt-search#feat/codex-web-harness
 ```
 
 ---
@@ -37,7 +31,7 @@ pi -ne -e npm:pi-gpt-search
 ## ⚡ Architecture & Zero-Agent-Turn Guarantee
 
 ```text
-Pi Coding Agent (Gemini)
+Pi Coding Agent (Active Model: Gemini / Claude / DeepSeek / etc.)
      │
      ▼
 web({ search_query, open, find, click, response_length })
@@ -46,15 +40,17 @@ web({ search_query, open, find, click, response_length })
 Codex Standalone Search Endpoint (/backend-api/codex/alpha/search)
      │
      ▼
-Model-Oriented Output + Structured Details
+Model-Oriented Output + OSC 8 Hyperlinks + Structured Details
      │
      ▼
-Gemini (Evaluates evidence, decides next web action or final answer)
+Active Model (Evaluates evidence, decides next web action or final answer)
 ```
 
 - **Zero Additional GPT Agent Turns:** The extension does not invoke a separate GPT/Codex agent turn to perform web research. It calls OpenAI Codex's standalone search endpoint directly.
-- **Gemini is the Sole Reasoning Engine:** Gemini controls the research loop, deciding when to search, open documents, find patterns, follow links, or finish.
-- **Preserved Model-Oriented Output:** Raw backend model-oriented text output with inline citations is passed directly to Gemini for maximum context clarity, while structured result metadata (`ref_id`, `url`, `title`, `snippet`) is preserved in `details`.
+- **Model-Independent Reasoning:** Your active Pi session model controls the research loop, deciding when to search, open documents, find patterns, follow links, or finish.
+- **Clickable Terminal Hyperlinks (Cmd+Click):** Inline citations `[1]`, `[2]` and `Sources:` links are formatted as OSC 8 terminal escape sequences. Holding `Cmd`/`Ctrl` reveals the target URL and clicking opens it in your default browser.
+- **Compact Collapsible TUI Display:** Tool calls collapse into a single-line status row (`✓ Web action complete (N results) (Ctrl+O to expand)`).
+- **Context Isolation:** Raw HTML/JSON data is excluded from LLM prompt memory, keeping context overhead near zero while storing full details in local TUI state.
 - **Session Reference Continuity:** Session IDs map across multi-step research calls, preserving `ref_id` targets across `search` -> `open` -> `find` -> `click` actions.
 
 ---
@@ -75,7 +71,7 @@ interface WebRunCommand {
 }
 ```
 
-Example usage by Gemini:
+Example usage by the active model:
 
 ```json
 {
@@ -152,7 +148,13 @@ npm test
 - **Provider Integration Tests (`provider-integration.test.ts`):** Deterministic mock tests for 200, 401, 403, 429, 500, timeout, and cancellation error handling.
 - **Real Endpoint Integration (`real-endpoint.test.ts` & `real-search.test.ts`):** Exercises the live Codex endpoint for session continuity (`search` -> `open` -> `find`), `response_length`, and domain filters.
 - **Zero-GPT Verification (`zero-gpt.test.ts`):** Proves that rich web commands execute with **0 GPT model inference calls** (`chat/completions`, `responses`, `turn/start`).
-- **Pi + Gemini E2E Suite (`e2e-research.test.ts`):** Full end-to-end research harness tests running Pi CLI with Gemini model, validating single-step search, multi-step `search` -> `open` research, `search` -> `open` -> `find` patterns, fresh information lookups, and error recovery.
+- **Pi E2E Harness Suite (`e2e-research.test.ts`):** Full end-to-end research harness tests running Pi CLI with the active model, validating single-step search, multi-step `search` -> `open` research, `search` -> `open` -> `find` patterns, fresh information lookups, and error recovery.
+
+---
+
+## 📄 Documentation
+
+- [HOW-IT-WORKS.md](./HOW-IT-WORKS.md) - Complete technical breakdown of architecture, data flow, TUI renderers, context isolation, and error handling.
 
 ---
 
