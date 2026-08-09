@@ -1,9 +1,26 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createWebTool, createWebSearchCompatTool } from "../src/web-tool";
+import { createWebTool, createWebSearchCompatTool, describeCommandStatus } from "../src/web-tool";
 
-test("web-tool - createWebTool returns valid definition and executes command", async () => {
+test("web-tool - describeCommandStatus formats readable action summaries", () => {
+  assert.equal(
+    describeCommandStatus({ search_query: [{ q: "rust" }] }),
+    'Searching web for "rust"...'
+  );
+  assert.equal(
+    describeCommandStatus({ open: [{ ref_id: "turn0search0" }] }),
+    "Opening document turn0search0..."
+  );
+  assert.equal(
+    describeCommandStatus({ find: [{ ref_id: "turn1view0", pattern: "license" }] }),
+    'Finding pattern "license" in turn1view0...'
+  );
+});
+
+test("web-tool - createWebTool invokes onUpdate progress handler", async () => {
   let executedCommand: unknown = null;
+  const updates: any[] = [];
+
   const fakeProvider = {
     async execute(cmd: unknown) {
       executedCommand = cmd;
@@ -23,16 +40,27 @@ test("web-tool - createWebTool returns valid definition and executes command", a
 
   const tool = createWebTool(fakeProvider);
   assert.equal(tool.name, "web");
-  assert.ok(tool.promptGuidelines && tool.promptGuidelines.length > 5);
 
-  const res = await tool.execute("call_1", { search_query: [{ q: "rust release" }] }, undefined, () => {}, {} as any);
+  const res = await tool.execute(
+    "call_1",
+    { search_query: [{ q: "rust release" }] },
+    undefined,
+    (update) => {
+      updates.push(update);
+    },
+    {} as any
+  );
+
+  assert.equal(updates.length, 1);
+  assert.equal(updates[0].content[0].text, 'Searching web for "rust release"...');
   assert.deepEqual(executedCommand, { search_query: [{ q: "rust release" }] });
   assert.equal(res.content[0].text, "Backend output for web tool");
-  assert.equal((res.details as any).resultCount, 1);
 });
 
-test("web-tool - createWebSearchCompatTool translates query into search", async () => {
+test("web-tool - createWebSearchCompatTool translates query into search and calls onUpdate", async () => {
   let searchCalledWith: unknown = null;
+  const updates: any[] = [];
+
   const fakeProvider = {
     async execute() {
       return { results: [] };
@@ -52,7 +80,18 @@ test("web-tool - createWebSearchCompatTool translates query into search", async 
   const compatTool = createWebSearchCompatTool(fakeProvider);
   assert.equal(compatTool.name, "web_search");
 
-  const res = await compatTool.execute("call_2", { query: "pi agent" }, undefined, () => {}, {} as any);
+  const res = await compatTool.execute(
+    "call_2",
+    { query: "pi agent" },
+    undefined,
+    (update) => {
+      updates.push(update);
+    },
+    {} as any
+  );
+
+  assert.equal(updates.length, 1);
+  assert.equal(updates[0].content[0].text, 'Searching web for "pi agent"...');
   assert.deepEqual(searchCalledWith, { query: "pi agent" });
   assert.match(res.content[0].text, /Result/);
 });

@@ -65,6 +65,27 @@ export const WebToolParameters = Type.Object({
   ),
 });
 
+export function describeCommandStatus(command: WebRunCommand): string {
+  const parts: string[] = [];
+  if (command.search_query && command.search_query.length > 0) {
+    const q = command.search_query.map((s) => `"${s.q}"`).join(", ");
+    parts.push(`Searching web for ${q}`);
+  }
+  if (command.open && command.open.length > 0) {
+    const refs = command.open.map((o) => o.ref_id).join(", ");
+    parts.push(`Opening document ${refs}`);
+  }
+  if (command.find && command.find.length > 0) {
+    const patterns = command.find.map((f) => `"${f.pattern}" in ${f.ref_id}`).join(", ");
+    parts.push(`Finding pattern ${patterns}`);
+  }
+  if (command.click && command.click.length > 0) {
+    const clicks = command.click.map((c) => `element #${c.id} in ${c.ref_id}`).join(", ");
+    parts.push(`Clicking ${clicks}`);
+  }
+  return parts.length > 0 ? parts.join("; ") + "..." : "Executing web research action...";
+}
+
 export function createWebTool(provider: WebSearchProvider): ToolDefinition {
   return {
     name: "web",
@@ -74,8 +95,15 @@ export function createWebTool(provider: WebSearchProvider): ToolDefinition {
     promptSnippet: "Perform iterative web research with search, open, find, click",
     promptGuidelines: BROWSING_GUIDELINES,
     parameters: WebToolParameters,
-    async execute(_toolCallId, params, signal, _onUpdate, _ctx) {
+    async execute(_toolCallId, params, signal, onUpdate, _ctx) {
       const command = params as WebRunCommand;
+      if (typeof onUpdate === "function") {
+        const statusMsg = describeCommandStatus(command);
+        onUpdate({
+          content: [{ type: "text", text: statusMsg }],
+          details: { status: statusMsg, command },
+        });
+      }
       try {
         const response = await provider.execute(command, undefined, signal);
         const formatted = formatWebToolResult(command, response);
@@ -105,8 +133,14 @@ export function createWebSearchCompatTool(provider: WebSearchProvider): ToolDefi
     parameters: Type.Object({
       query: Type.String({ description: "The search query to look up on the web" }),
     }),
-    async execute(_toolCallId, params, signal, _onUpdate, _ctx) {
+    async execute(_toolCallId, params, signal, onUpdate, _ctx) {
       const query = (params as { query: string }).query;
+      if (typeof onUpdate === "function") {
+        onUpdate({
+          content: [{ type: "text", text: `Searching web for "${query}"...` }],
+          details: { status: `Searching web for "${query}"...`, query },
+        });
+      }
       try {
         const response = await provider.search({ query }, signal);
         const textOutput = formatSearchResponseText(query, response);
