@@ -6,14 +6,19 @@ export interface FormattedToolOutput {
   details: Record<string, unknown>;
 }
 
+export function formatTerminalHyperlink(url: string, text: string): string {
+  if (!url) return text;
+  return `\u001b]8;;${url}\u001b\\${text}\u001b]8;;\u001b\\`;
+}
+
 export function cleanCitationMarkers(text: string, results: SearchResult[] = []): string {
   if (!text) return "";
 
-  const refToNumMap = new Map<string, number>();
+  const refToEntryMap = new Map<string, { num: number; item: SearchResult }>();
   results.forEach((r, idx) => {
     const ref = r.ref_id || r.refId;
     if (ref) {
-      refToNumMap.set(ref, idx + 1);
+      refToEntryMap.set(ref, { num: idx + 1, item: r });
     }
   });
 
@@ -28,24 +33,33 @@ export function cleanCitationMarkers(text: string, results: SearchResult[] = [])
       return label ? `[${label}]` : "";
     }
 
-    if (refToNumMap.has(cleanInner)) {
-      return `[${refToNumMap.get(cleanInner)}]`;
+    if (refToEntryMap.has(cleanInner)) {
+      const entry = refToEntryMap.get(cleanInner)!;
+      const label = `[${entry.num}]`;
+      return entry.item.url ? formatTerminalHyperlink(entry.item.url, label) : label;
     }
 
     const matchedResult = results.find((r) => (r.ref_id || r.refId) === cleanInner);
     if (matchedResult && matchedResult.url) {
       const title = matchedResult.title ? matchedResult.title : matchedResult.url;
-      return `[${cleanInner}: ${title} (${matchedResult.url})]`;
+      return formatTerminalHyperlink(matchedResult.url, `[${cleanInner}: ${title}]`);
     }
 
     return `[${cleanInner}]`;
   });
 
-  // 2. Converts raw turn references like [turn0search0, turn2view0] into numeric references [1, 2]
+  // 2. Converts raw turn references like [turn0search0, turn2view0] into clickable OSC 8 hyperlink brackets [1] [2]
   cleaned = cleaned.replace(/\[(turn\d+[a-z0-9_,\s]*)\]/gi, (match, inner) => {
     const refs = inner.split(",").map((s) => s.trim());
-    const nums = refs.map((ref) => (refToNumMap.has(ref) ? refToNumMap.get(ref) : ref));
-    return `[${nums.join(", ")}]`;
+    const formattedRefs = refs.map((ref) => {
+      if (refToEntryMap.has(ref)) {
+        const entry = refToEntryMap.get(ref)!;
+        const label = `[${entry.num}]`;
+        return entry.item.url ? formatTerminalHyperlink(entry.item.url, label) : label;
+      }
+      return `[${ref}]`;
+    });
+    return formattedRefs.join(" ");
   });
 
   return cleaned;
@@ -66,7 +80,8 @@ export function formatWebToolResult(command: WebRunCommand, response: SearchResp
           const num = idx + 1;
           const title = r.title ? r.title : r.url;
           const refStr = r.ref_id ? ` (${r.ref_id})` : "";
-          return `[${num}] ${title}${refStr} - ${r.url}`;
+          const clickableUrl = formatTerminalHyperlink(r.url, r.url);
+          return `[${num}] ${title}${refStr} - ${clickableUrl}`;
         });
 
       if (sourcesList.length > 0) {
@@ -75,11 +90,13 @@ export function formatWebToolResult(command: WebRunCommand, response: SearchResp
     }
   } else if (response.results && response.results.length > 0) {
     const formatted = response.results.map((item, idx) => {
-      const title = item.title ? item.title : item.url ?? `Result ${idx + 1}`;
-      const urlLine = item.url ? `   URL: ${item.url}\n` : "";
-      const refLine = item.ref_id ? `   Ref: [${idx + 1}] (${item.ref_id})\n` : "";
+      const num = idx + 1;
+      const title = item.title ? item.title : item.url ?? `Result ${num}`;
+      const clickableUrl = item.url ? formatTerminalHyperlink(item.url, item.url) : "";
+      const urlLine = clickableUrl ? `   URL: ${clickableUrl}\n` : "";
+      const refLine = item.ref_id ? `   Ref: [${num}] (${item.ref_id})\n` : "";
       const snippetLine = item.snippet ? cleanCitationMarkers(item.snippet, response.results) : "";
-      return `[${idx + 1}] ${title}\n${refLine}${urlLine}${snippetLine ? "   " + snippetLine : ""}`.trim();
+      return `[${num}] ${title}\n${refLine}${urlLine}${snippetLine ? "   " + snippetLine : ""}`.trim();
     });
     primaryText = `Web Search Results:\n\n${formatted.join("\n\n")}`;
   } else {
