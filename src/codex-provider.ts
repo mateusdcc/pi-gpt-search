@@ -1,8 +1,14 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
-import type { SearchRequest, WebSearchProvider } from "./provider";
+import type { SearchRequest, SearchExecutionOptions, WebSearchProvider } from "./provider";
 import { normalizeSearchResponseBody, type SearchResponse } from "./normalize";
+import {
+  validateWebRunCommand,
+  serializeWebRunPayload,
+  type WebRunCommand,
+} from "./commands";
+import { filterSearchContext, type SearchContextMode } from "./context";
 import {
   CodexAuthMissingError,
   CodexAuthExpiredError,
@@ -75,23 +81,59 @@ export interface CodexWebSearchProviderOptions {
   endpoint?: string;
   timeoutMs?: number;
   customFetch?: typeof fetch;
+  sessionId?: string;
+  model?: string;
+  defaultContextMode?: SearchContextMode;
+  maxRetries?: number;
 }
 
 const DEFAULT_ENDPOINT = "https://chatgpt.com/backend-api/codex/alpha/search";
 const DEFAULT_TIMEOUT_MS = 15000;
+const DEFAULT_MODEL = "gpt-4o";
 
 export class CodexWebSearchProvider implements WebSearchProvider {
   private endpoint: string;
   private timeoutMs: number;
   private fetchImpl: typeof fetch;
+  private currentSessionId: string;
+  private model: string;
+  private defaultContextMode: SearchContextMode;
+  private maxRetries: number;
 
   constructor(options?: CodexWebSearchProviderOptions) {
     this.endpoint = options?.endpoint ?? DEFAULT_ENDPOINT;
     this.timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.fetchImpl = options?.customFetch ?? globalThis.fetch;
+    this.model = options?.model ?? DEFAULT_MODEL;
+    this.defaultContextMode = options?.defaultContextMode ?? "none";
+    this.maxRetries = options?.maxRetries ?? 2;
+    this.currentSessionId =
+      options?.sessionId ?? `search_session_${Math.random().toString(36).substring(2, 10)}`;
+  }
+
+  getSessionId(): string {
+    return this.currentSessionId;
+  }
+
+  setSessionId(id: string): void {
+    if (id && id.trim()) {
+      this.currentSessionId = id.trim();
+    }
   }
 
   async search(request: SearchRequest, signal?: AbortSignal): Promise<SearchResponse> {
+    const command: WebRunCommand = {
+      search_query: [{ q: request.query }],
+    };
+    return this.execute(command, undefined, signal);
+  }
+
+  async execute(
+    command: WebRunCommand,
+    options?: SearchExecutionOptions,
+    signal?: AbortSignal
+  ): Promise<SearchResponse> {
+    const validatedCmd = validateWebRunCommand(command);
     const auth = loadCodexAuth();
     if (!auth) {
       throw new CodexAuthMissingError();
@@ -118,28 +160,54 @@ export class CodexWebSearchProvider implements WebSearchProvider {
       headers["ChatGPT-Account-ID"] = auth.accountId;
     }
 
-    const payload = {
-      id: "search_1",
-      model: "gpt-4o",
-      commands: {
-        search_query: [{ q: request.query }],
-      },
-    };
+    const sessionId = options?.sessionId ?? this.currentSessionId;
+    const contextMode = options?.contextMode ?? this.defaultContextMode;
+    const filteredContext = options?.conversationTurns
+      ? filterSearchContext(options.conversationTurns, contextMode)
+      : [];
+
+    const payload = serializeWebRunPayload(validatedCmd, {
+      sessionId,
+      model: this.model,
+      context: filteredContext.length > 0 ? filteredContext : undefined,
+    });
 
     const startTime = Date.now();
     const requestId = Math.random().toString(36).substring(2, 9);
 
     if (process.env.PI_WEB_SEARCH_DEBUG) {
-      console.error(`[PI_WEB_SEARCH_DEBUG] req_id=${requestId} query="${request.query}" provider=codex`);
+      console.error(
+        `[PI_WEB_SEARCH_DEBUG] req_id=${requestId} session_id=${sessionId} cmd=${JSON.stringify(
+          validatedCmd
+        )} provider=codex`
+      );
     }
 
     try {
-      const response = await this.fetchImpl(this.endpoint, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
+      let response: Response | null = null;
+      let attempt = 0;
+
+      while (attempt <= this.maxRetries) {
+        attempt++;
+        response = await this.fetchImpl(this.endpoint, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+
+        if (response.status === 502 || response.status === 503 || response.status === 504) {
+          if (attempt <= this.maxRetries) {
+            await new Promise((res) => setTimeout(res, 500 * attempt));
+            continue;
+          }
+        }
+        break;
+      }
+
+      if (!response) {
+        throw new CodexHttpError(500, "No response received");
+      }
 
       const elapsedMs = Date.now() - startTime;
 
@@ -170,7 +238,7 @@ export class CodexWebSearchProvider implements WebSearchProvider {
 
       if (process.env.PI_WEB_SEARCH_DEBUG) {
         console.error(
-          `[PI_WEB_SEARCH_DEBUG] req_id=${requestId} status=200 elapsed_ms=${elapsedMs} results=${normalized.results.length}`
+          `[PI_WEB_SEARCH_DEBUG] req_id=${requestId} status=200 elapsed_ms=${elapsedMs} results=${normalized.results.length} output_len=${normalized.output?.length ?? 0}`
         );
       }
 

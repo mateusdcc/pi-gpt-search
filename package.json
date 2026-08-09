@@ -1,6 +1,6 @@
 {
   "name": "pi-gpt-search",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Model-independent standalone web search extension for Pi coding agent powered by OpenAI Codex standalone search engine (Zero-GPT inference)",
   "main": "src/index.ts",
   "type": "module",
@@ -27,6 +27,10 @@
   "license": "MIT",
   "dependencies": {
     "@sinclair/typebox": "^0.34.0"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

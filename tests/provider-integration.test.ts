@@ -28,6 +28,34 @@ test("provider-integration: success 200 OK with results", async () => {
   assert.equal(res.results[0].url, "https://example.com");
 });
 
+test("provider-integration: execute serializes rich commands correctly", async () => {
+  let capturedBody: Record<string, unknown> | null = null;
+  const customFetch: typeof fetch = async (_url, options) => {
+    capturedBody = JSON.parse((options?.body as string) || "{}");
+    return new Response(
+      JSON.stringify({
+        output: "Mocked page output",
+        results: [{ ref_id: "turn1view0", snippet: "Page content" }],
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
+  };
+
+  const provider = new CodexWebSearchProvider({ customFetch, sessionId: "sess_42" });
+  const res = await provider.execute({
+    open: [{ ref_id: "turn0search0", lineno: 10 }],
+    response_length: "short",
+  });
+
+  assert.equal(res.output, "Mocked page output");
+  assert.ok(capturedBody);
+  assert.equal(capturedBody.id, "sess_42");
+  assert.deepEqual(capturedBody.commands, {
+    open: [{ ref_id: "turn0search0", lineno: 10 }],
+    response_length: "short",
+  });
+});
+
 test("provider-integration: 401 returns CodexAuthExpiredError", async () => {
   const customFetch: typeof fetch = async () => {
     return new Response("Unauthorized", { status: 401 });

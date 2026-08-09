@@ -21,23 +21,23 @@ test("normalizeRawSearchResult - valid item", () => {
     unknown_field: 123,
   };
   const normalized = normalizeRawSearchResult(item);
-  assert.deepEqual(normalized, {
-    title: "Rust Language",
-    url: "https://www.rust-lang.org",
-    snippet: "Empowering everyone to build reliable and efficient software.",
-    domain: "rust-lang.org",
-    refId: "turn1search0",
-  });
+  assert.equal(normalized?.title, "Rust Language");
+  assert.equal(normalized?.url, "https://www.rust-lang.org");
+  assert.equal(normalized?.snippet, "Empowering everyone to build reliable and efficient software.");
+  assert.equal(normalized?.domain, "rust-lang.org");
+  assert.equal(normalized?.refId, "turn1search0");
+  assert.equal(normalized?.ref_id, "turn1search0");
+  assert.deepEqual(normalized?.raw, item);
 });
 
-test("normalizeRawSearchResult - missing url returns null", () => {
-  const item = { title: "No URL item" };
+test("normalizeRawSearchResult - empty item returns null", () => {
+  const item = { invalid: true };
   assert.equal(normalizeRawSearchResult(item), null);
 });
 
-test("normalizeSearchResponseBody - handles raw results and ignores unknown fields", () => {
+test("normalizeSearchResponseBody - handles raw results and preserves output", () => {
   const body = {
-    output: "Cleaned text",
+    output: "Cleaned model text",
     results: [
       { title: "Item 1", url: "https://example.com/1" },
       { invalid: true },
@@ -46,10 +46,11 @@ test("normalizeSearchResponseBody - handles raw results and ignores unknown fiel
     extra_field: "ignored",
   };
   const normalized = normalizeSearchResponseBody(body);
-  assert.equal(normalized.output, "Cleaned text");
+  assert.equal(normalized.output, "Cleaned model text");
   assert.equal(normalized.results.length, 2);
   assert.equal(normalized.results[0].url, "https://example.com/1");
   assert.equal(normalized.results[1].url, "https://example.com/2");
+  assert.deepEqual(normalized.raw, body);
 });
 
 test("formatSearchResponseText - empty results", () => {
