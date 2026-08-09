@@ -6,6 +6,28 @@
 
 ---
 
+## ⚡ Quick Start: 1-Line Installation
+
+Install globally using `pi install`:
+
+```bash
+pi install https://github.com/mateusdcc/pi-gpt-search
+```
+
+Or install project-locally for your current repository (`-l` flag):
+
+```bash
+pi install https://github.com/mateusdcc/pi-gpt-search -l
+```
+
+Or try it temporarily in a single session without installing:
+
+```bash
+pi -e git:github.com/mateusdcc/pi-gpt-search
+```
+
+---
+
 ## ⚡ Key Highlights: ZERO-GPT INFERENCE
 
 - 🚫 **Zero GPT Tokens Spent:** Pure web retrieval via OpenAI's backend endpoint. No GPT/Codex LLM turns are executed, meaning **0 input tokens, 0 output tokens, and 0 reasoning credits are billed**.
@@ -64,33 +86,29 @@ Pi Coding Agent
 
 ## 📋 Requirements
 
-1. **Pi Coding Agent:** `pi` CLI installed.
+1. **Pi Coding Agent:** `pi` CLI installed (`v0.80+`).
 2. **Node.js:** `v18.0.0` or higher.
 3. **OpenAI Codex Auth:** An authenticated Codex session (run `codex login` in terminal, or set `CODEX_ACCESS_TOKEN` in `.env`).
 
 ---
 
-## 🚀 Quick Setup
+## ⚙️ Manual Installation & Environment Setup
 
-### 1. Global Installation (Recommended)
+If you prefer manual placement instead of `pi install`:
 
-Copy or link `pi-gpt-search` to your global Pi extensions directory:
+### 1. Manual Placement
 
 ```bash
+# Global (All projects)
 mkdir -p ~/.pi/agent/extensions
 cp -r pi-gpt-search ~/.pi/agent/extensions/
-```
 
-### 2. Project-Local Installation
-
-Copy `pi-gpt-search` into your project's `.pi/extensions/` directory:
-
-```bash
+# Project-local
 mkdir -p .pi/extensions
 cp -r pi-gpt-search .pi/extensions/
 ```
 
-### 3. Environment Variables (Optional)
+### 2. Environment Variables (Optional)
 
 Copy `.env.example` to `.env` if you want to explicitly override your Codex access token:
 
