@@ -17,8 +17,8 @@ export function cleanCitationMarkers(text: string, results: SearchResult[] = [])
     }
   });
 
-  // Matches Codex private Unicode citation markers: \uE200cite\uE202<ref>\uE201 or cite<ref>
-  const cleaned = text.replace(/[\uE000-\uE2FF]?cite[\uE000-\uE2FF]?([^\uE000-\uE2FF\r\n]+)[\uE000-\uE2FF]?/gi, (match, inner) => {
+  // 1. Matches Codex private Unicode citation markers: \uE200cite\uE202<ref>\uE201 or cite<ref>
+  let cleaned = text.replace(/[\uE000-\uE2FF]?cite[\uE000-\uE2FF]?([^\uE000-\uE2FF\r\n]+)[\uE000-\uE2FF]?/gi, (match, inner) => {
     const cleanInner = inner.trim();
     if (!cleanInner) return "";
 
@@ -39,6 +39,13 @@ export function cleanCitationMarkers(text: string, results: SearchResult[] = [])
     }
 
     return `[${cleanInner}]`;
+  });
+
+  // 2. Converts raw turn references like [turn0search0, turn2view0] into numeric references [1, 2]
+  cleaned = cleaned.replace(/\[(turn\d+[a-z0-9_,\s]*)\]/gi, (match, inner) => {
+    const refs = inner.split(",").map((s) => s.trim());
+    const nums = refs.map((ref) => (refToNumMap.has(ref) ? refToNumMap.get(ref) : ref));
+    return `[${nums.join(", ")}]`;
   });
 
   return cleaned;
