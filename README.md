@@ -1,8 +1,8 @@
 # pi-gpt-search
 
-> **Native, Model-Independent Web Search for Pi using OpenAI Codex Standalone Search Engine.**
+> **Native, Model-Independent Web Research Harness for Pi powered by OpenAI Codex Standalone Search Engine.**
 
-`pi-gpt-search` gives **any** Pi model (Gemini, Claude, local models, OpenRouter) real-time web search capabilities by reusing OpenAI Codex's standalone web retrieval infrastructure—with **ZERO GPT Model Inference Turns** and **ZERO GPT Tokens Consumed**.
+`pi-gpt-search` gives **any** Pi model (Gemini, Claude, local models, OpenRouter) real-time, multi-step web research capabilities using OpenAI Codex's standalone search and browsing infrastructure—with **Zero Additional GPT Agent Turns**.
 
 ---
 
@@ -29,139 +29,130 @@ pi install npm:pi-gpt-search -l
 Or try it temporarily in a single session without installing:
 
 ```bash
-pi -e npm:pi-gpt-search
+pi -ne -e npm:pi-gpt-search
 ```
 
 ---
 
-## ⚡ Key Highlights: ZERO-GPT INFERENCE
-
-- 🚫 **Zero GPT Tokens Spent:** Pure web retrieval via OpenAI's backend endpoint. No GPT/Codex LLM turns are executed, meaning **0 input tokens, 0 output tokens, and 0 reasoning credits are billed**.
-- 🧠 **Model Sovereign:** Your active Pi model (e.g., Gemini 3.5 Flash / Gemini 3.1 Pro) remains the sole reasoning model.
-- 💬 **Slash Command & LLM Tool:** Works both automatically as an LLM tool (`web_search`) and as a direct user command (`/gpt-search`).
-- 🔓 **Credential Reuse:** Automatically uses your existing `codex login` session (`~/.codex/auth.json`) or custom `.env` tokens.
-- 🛡️ **Data Privacy:** Query-only by default. Does not send conversation history, project files, or system prompts to search.
-
----
-
-## 🏗️ Architecture
+## ⚡ Architecture & Zero-Agent-Turn Guarantee
 
 ```text
-Pi Coding Agent
- └── Gemini (or active model)
-      └── web_search(query: "latest Rust release")
-           └── Codex/OpenAI Standalone Search API (/codex/alpha/search)
-                └── Structured Results (Title, URL, Snippet)
-                     └── Gemini continues reasoning & answers user
+Pi Coding Agent (Gemini)
+     │
+     ▼
+web({ search_query, open, find, click, response_length })
+     │
+     ▼
+Codex Standalone Search Endpoint (/backend-api/codex/alpha/search)
+     │
+     ▼
+Model-Oriented Output + Structured Details
+     │
+     ▼
+Gemini (Evaluates evidence, decides next web action or final answer)
 ```
+
+- **Zero Additional GPT Agent Turns:** The extension does not invoke a separate GPT/Codex agent turn to perform web research. It calls OpenAI Codex's standalone search endpoint directly.
+- **Gemini is the Sole Reasoning Engine:** Gemini controls the research loop, deciding when to search, open documents, find patterns, follow links, or finish.
+- **Preserved Model-Oriented Output:** Raw backend model-oriented text output with inline citations is passed directly to Gemini for maximum context clarity, while structured result metadata (`ref_id`, `url`, `title`, `snippet`) is preserved in `details`.
+- **Session Reference Continuity:** Session IDs map across multi-step research calls, preserving `ref_id` targets across `search` -> `open` -> `find` -> `click` actions.
 
 ---
 
-## 💻 Usage & Commands
+## 🛠️ Model Tools & Commands
 
-### 1. Direct Slash Command: `/gpt-search`
+### 1. Primary Model Tool: `web`
 
-Perform a direct web search immediately without spending LLM tokens:
+Supported web research actions:
+
+```typescript
+interface WebRunCommand {
+  search_query?: Array<{ q: string; recency?: number; domains?: string[] }>;
+  open?: Array<{ ref_id: string; lineno?: number }>;
+  click?: Array<{ ref_id: string; id: number }>;
+  find?: Array<{ ref_id: string; pattern: string }>;
+  response_length?: "short" | "medium" | "long";
+}
+```
+
+Example usage by Gemini:
+
+```json
+{
+  "search_query": [
+    { "q": "OpenAI Codex GitHub repository", "domains": ["github.com"] }
+  ],
+  "response_length": "medium"
+}
+```
+
+Followed by opening the retrieved reference in the same session:
+
+```json
+{
+  "open": [
+    { "ref_id": "turn0search0" }
+  ]
+}
+```
+
+Followed by finding specific patterns inside the document:
+
+```json
+{
+  "find": [
+    { "ref_id": "turn1view0", "pattern": "terminal" }
+  ]
+}
+```
+
+### 2. Compatibility Tool: `web_search`
+
+Legacy wrapper for simple single-query lookups:
+
+```json
+{
+  "query": "Rust 1.97 release notes"
+}
+```
+
+Internally translates into `web({ search_query: [{ q: "query" }] })`.
+
+### 3. Direct User Slash Command: `/gpt-search`
+
+Perform direct web searches from the Pi prompt without consuming LLM reasoning turns:
 
 ```text
-/gpt-search give me the repo link to codex
-```
-
-```text
-/gpt-search Rust 1.97 release notes
-```
-
-### 2. Automatic LLM Tool: `web_search`
-
-Ask any model a question requiring current facts:
-
-```bash
-pi --model antigravity/gemini-3.5-flash "What is the latest release of Rust and what changed?"
-```
-
-### Example Log Output (with `PI_WEB_SEARCH_DEBUG=1`):
-
-```text
-[PI_WEB_SEARCH_DEBUG] req_id=maqk8a5 query="latest Rust release version and date 2026" provider=codex
-[PI_WEB_SEARCH_DEBUG] req_id=maqk8a5 status=200 elapsed_ms=1863 results=41
+/gpt-search OpenAI Codex release notes
 ```
 
 ---
 
-## 📋 Requirements
+## 🔑 Authentication
 
-1. **Pi Coding Agent:** `pi` CLI installed (`v0.80+`).
-2. **Node.js:** `v18.0.0` or higher.
-3. **OpenAI Codex Auth:** An authenticated Codex session (run `codex login` in terminal, or set `CODEX_ACCESS_TOKEN` in `.env`).
+Automatically resolves authentication in order of priority:
+1. `CODEX_ACCESS_TOKEN` / `CODEX_ACCOUNT_ID` in `.env` or process environment.
+2. Saved CLI session credentials in `~/.codex/auth.json` (from running `codex login`).
 
----
-
-## ⚙️ Manual Installation & Environment Setup
-
-If you prefer manual placement instead of `pi install`:
-
-### 1. Manual Placement
-
-```bash
-# Global (All projects)
-mkdir -p ~/.pi/agent/extensions
-cp -r pi-gpt-search ~/.pi/agent/extensions/
-
-# Project-local
-mkdir -p .pi/extensions
-cp -r pi-gpt-search .pi/extensions/
-```
-
-### 2. Environment Variables (Optional)
-
-Copy `.env.example` to `.env` if you want to explicitly override your Codex access token:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env`:
-
-```env
-# Optional: If unset, automatically reads ~/.codex/auth.json
-CODEX_ACCESS_TOKEN=your_token_here
-CODEX_ACCOUNT_ID=your_account_id_here
-
-# Enable debug logging
-PI_WEB_SEARCH_DEBUG=1
-```
-
-> **Security Note:** Never commit `.env` to Git. `.env` is listed in `.gitignore`.
+> Credentials are kept secure and never exposed to the LLM or printed in debug logs.
 
 ---
 
-## 🧪 Running Tests
+## 🧪 Testing Suite
 
-`pi-gpt-search` comes with a 4-level test suite:
+Run the full test suite (unit, integration, real endpoint, zero-agent turn, and E2E):
 
 ```bash
 npm test
 ```
 
-Test suite breakdown:
-- **Unit Tests (`unit.test.ts`):** Schema validation, DTO normalization, error classes, output formatting.
-- **Integration Tests (`provider-integration.test.ts`):** Mock server handling for 200, 401, 403, 429, 500, timeouts, cancellation.
-- **Real Search Test (`real-search.test.ts`):** Live execution against OpenAI's search endpoint.
-- **Zero-GPT Verification (`zero-gpt.test.ts`):** Network interception test proving **0 GPT inference calls** are made.
+### Test Suite Breakdown:
 
----
-
-## 📖 Documentation
-
-- [HOW-IT-WORKS.md](./HOW-IT-WORKS.md) - Deep architectural breakdown of modules, data flow, and cancellation.
-- [HOW-IT-WAS-EXTRACT.md](./HOW-IT-WAS-EXTRACT.md) - Reverse-engineering guide documenting how the standalone search endpoint was discovered.
-
----
-
-## ⚠️ Limitations
-
-- **Search Index Scope:** Returns search result snippets and URLs; does not include a full headless browser DOM renderer.
-- **Session Auth:** Requires an active ChatGPT/Codex login session (`codex login`). Expired sessions require running `codex login` to re-authenticate.
+- **Unit Tests (`commands.test.ts`, `normalize.test.ts`, `context.test.ts`, `output.test.ts`, `web-tool.test.ts`, `unit.test.ts`):** Validates DTO parsing, command validation, output formatting, context filtering, and tool schemas.
+- **Provider Integration Tests (`provider-integration.test.ts`):** Deterministic mock tests for 200, 401, 403, 429, 500, timeout, and cancellation error handling.
+- **Real Endpoint Integration (`real-endpoint.test.ts` & `real-search.test.ts`):** Exercises the live Codex endpoint for session continuity (`search` -> `open` -> `find`), `response_length`, and domain filters.
+- **Zero-GPT Verification (`zero-gpt.test.ts`):** Proves that rich web commands execute with **0 GPT model inference calls** (`chat/completions`, `responses`, `turn/start`).
+- **Pi + Gemini E2E Suite (`e2e-research.test.ts`):** Full end-to-end research harness tests running Pi CLI with Gemini model, validating single-step search, multi-step `search` -> `open` research, `search` -> `open` -> `find` patterns, fresh information lookups, and error recovery.
 
 ---
 
