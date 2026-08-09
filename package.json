@@ -4,6 +4,12 @@
   "description": "Model-independent standalone web search extension for Pi coding agent powered by OpenAI Codex standalone search engine (Zero-GPT inference)",
   "main": "src/index.ts",
   "type": "module",
+  "files": [
+    "src/**/*",
+    "README.md",
+    "HOW-IT-WORKS.md",
+    "HOW-IT-WAS-EXTRACT.md"
+  ],
   "scripts": {
     "test": "NODE_PATH=/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules npx tsx --test tests/*.test.ts"
   },
@@ -20,8 +26,7 @@
   "author": "Mateus DCC",
   "license": "MIT",
   "dependencies": {
-    "@sinclair/typebox": "^0.34.52",
-    "typebox": "npm:@sinclair/typebox@^0.34.52"
+    "@sinclair/typebox": "^0.34.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
