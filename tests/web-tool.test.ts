@@ -117,7 +117,7 @@ test("web-tool - createWebSearchCompatTool translates query into search and call
   };
 
   const compatTool = createWebSearchCompatTool(fakeProvider);
-  assert.equal(compatTool.name, "web_search");
+  assert.equal(compatTool.name, "codex-search");
 
   const res = await compatTool.execute(
     "call_2",

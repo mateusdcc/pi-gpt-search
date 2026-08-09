@@ -154,13 +154,13 @@ export function createWebTool(provider: WebSearchProvider): ToolDefinition {
 
 export function createWebSearchCompatTool(provider: WebSearchProvider): ToolDefinition {
   return {
-    name: "web_search",
-    label: "Web Search (Compatibility)",
+    name: "codex-search",
+    label: "Codex Search (Compatibility)",
     description:
-      "Legacy single-query search tool wrapper around the web research harness. Translates directly into web({ search_query: [{ q: query }] }).",
+      "Single-query Codex search compatibility tool. Translates directly into web({ search_query: [{ q: query }] }).",
     promptSnippet: "Search the web for current or externally verifiable information",
     promptGuidelines: [
-      "Use web_search for simple web lookups. For iterative research (opening pages, searching patterns), use the 'web' tool instead."
+      "Use codex-search for simple web lookups. For iterative research (opening pages, searching patterns), use the 'web' tool instead."
     ],
     parameters: Type.Object({
       query: Type.String({ description: "The search query to look up on the web" }),
@@ -196,7 +196,7 @@ export function createWebSearchCompatTool(provider: WebSearchProvider): ToolDefi
     },
     renderCall(args, theme, _context) {
       const query = (args as { query?: string }).query ?? "";
-      const title = theme?.fg ? theme.fg("toolTitle", theme.bold("web_search ")) : "web_search ";
+      const title = theme?.fg ? theme.fg("toolTitle", theme.bold("codex-search ")) : "codex-search ";
       const status = theme?.fg ? theme.fg("muted", `Searching web for "${query}"...`) : `Searching web for "${query}"...`;
       return new Text(title + status, 0, 0);
     },

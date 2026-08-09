@@ -38,7 +38,7 @@ pi -e npm:pi-gpt-search
 
 - 🚀 **Zero GPT Tokens Spent:** Pure web retrieval via OpenAI's backend endpoint. No GPT/Codex LLM turns are executed, meaning **0 input tokens, 0 output tokens, and 0 reasoning credits are billed**.
 - 👑 **Model Sovereign:** Your active Pi model (e.g., Gemini 3.5 Flash / Gemini 3.1 Pro) remains the sole reasoning model.
-- 🛠️ **Slash Command & LLM Tools:** Works both automatically as LLM tools (`web_search` & `web`) and as a direct user command (`/gpt-search`).
+- 🛠️ **Slash Command & LLM Tools:** Works both automatically as LLM tools (`codex-search` & `web`) and as a direct user command (`/gpt-search`).
 - 🔑 **Credential Reuse:** Automatically uses your existing `codex login` session (`~/.codex/auth.json`) or custom `.env` tokens.
 - 🛡️ **Data Privacy:** Query-only by default. Does not send conversation history, project files, or system prompts to search.
 
@@ -49,7 +49,7 @@ pi -e npm:pi-gpt-search
 ```text
 Pi Coding Agent
  └── Gemini (or active model)
-      ├── web_search(query: "latest Rust release")
+      ├── codex-search(query: "latest Rust release")
       │    └── Codex/OpenAI Standalone Search API (/codex/alpha/search)
       │         └── Structured Results (Title, URL, Snippet)
       │              └── Gemini continues reasoning & answers user
@@ -75,7 +75,7 @@ Perform a direct web search immediately without spending LLM tokens:
 /gpt-search Rust 1.97 release notes
 ```
 
-### 2. Automatic LLM Tool: `web_search`
+### 2. Automatic LLM Tool: `codex-search`
 
 Ask any model a question requiring current facts (single-query lookup):
 

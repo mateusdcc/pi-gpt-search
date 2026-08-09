@@ -19,13 +19,13 @@ export function formatSearchResponseText(query: string, response: SearchResponse
 
 export function createWebSearchTool(provider: WebSearchProvider): ToolDefinition {
   return {
-    name: "web_search",
+    name: "codex-search",
     label: "Web Search",
     description:
       "Search the public web for current or externally verifiable information. Use this tool whenever the answer depends on information that may have changed, including recent software versions, documentation, releases, news, APIs, products, schedules, or facts you are unsure about. Do not guess current information when this tool is available.",
     promptSnippet: "Search the web for current or externally verifiable information",
     promptGuidelines: [
-      "Use web_search for current, uncertain, niche, or explicitly requested online information."
+      "Use codex-search for current, uncertain, niche, or explicitly requested online information."
     ],
     parameters: Type.Object({
       query: Type.String({

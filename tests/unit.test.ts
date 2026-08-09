@@ -86,7 +86,7 @@ test("createWebSearchTool returns correct tool definition", () => {
     },
   };
   const tool = createWebSearchTool(fakeProvider);
-  assert.equal(tool.name, "web_search");
+  assert.equal(tool.name, "codex-search");
   assert.ok(tool.description.includes("Search the public web"));
-  assert.ok(tool.promptGuidelines?.[0].includes("web_search"));
+  assert.ok(tool.promptGuidelines?.[0].includes("codex-search"));
 });

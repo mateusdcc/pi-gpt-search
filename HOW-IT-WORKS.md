@@ -6,9 +6,9 @@
 
 ## 🏗️ System Architecture & Data Flow
 
-### 1. Simple Single-Query Search Flow (`web_search`)
+### 1. Simple Single-Query Search Flow (`codex-search`)
 
-The `web_search` tool provides a simple interface for single-query searches (the primary mode from earlier releases). The active Pi model sends a single search query string, which is formatted into a search action and executed against the OpenAI standalone search engine endpoint.
+The `codex-search` tool provides a simple interface for single-query searches (the primary mode from earlier releases). The active Pi model sends a single search query string, which is formatted into a search action and executed against the OpenAI standalone search engine endpoint.
 
 ```text
                +-------------------------------------------------------+
@@ -21,9 +21,9 @@ The `web_search` tool provides a simple interface for single-query searches (the
                |      (Gemini / Claude / DeepSeek / Ollama / etc.)     |
                +---------------------------+---------------------------+
                                            |
-                                           v Tool Call: web_search({ query: "..." })
+                                           v Tool Call: codex-search({ query: "..." })
                +-------------------------------------------------------+
-               |              web_search Compatibility Tool            |
+               |              codex-search Compatibility Tool            |
                |                       (web-tool.ts)                   |
                |     - Wraps query into web({ search_query: ... })     |
                |     - Emits live TUI status updates via onUpdate      |
@@ -125,13 +125,13 @@ The `web` tool introduces a full research harness capability. Instead of stoppin
 
 ### 1. Extension Entrypoint (`src/index.ts`)
 Handles Pi Extension registration cleanly:
-- Registers compatibility tool wrapper `web_search`.
+- Registers compatibility tool wrapper `codex-search`.
 - Registers primary research harness tool `web`.
 - Registers direct user slash command `/gpt-search`.
 
 ### 2. Model-Facing Research Tools (`src/web-tool.ts`)
 Exposes both single-query search and rich research actions to any active Pi session model:
-- **Single-Query Search (`web_search`):** Accepts `{ query: string }` and translates it into a single-query `search_query` execution.
+- **Single-Query Search (`codex-search`):** Accepts `{ query: string }` and translates it into a single-query `search_query` execution.
 - **Rich Research Harness (`web`):** Supports full research actions (`search_query`, `open`, `find`, `click`, `response_length`).
 - **TUI Progress Feedback:** Calls `onUpdate()` to report live stage descriptions (e.g. `Searching web for "query"...`, `Opening document turn0search0...`).
 - **Collapsible Display (`renderCall` & `renderResult`):** Collapses completed execution rows to a single line `✓ Web action complete (N results) (Ctrl+O to expand)`.

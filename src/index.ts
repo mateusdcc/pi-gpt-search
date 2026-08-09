@@ -10,7 +10,7 @@ export default function (pi: ExtensionAPI) {
   const webTool = createWebTool(provider);
   pi.registerTool(webTool);
 
-  // Register legacy web_search tool compatibility wrapper
+  // Register codex-search tool compatibility wrapper
   const webSearchCompatTool = createWebSearchCompatTool(provider);
   pi.registerTool(webSearchCompatTool);
 
