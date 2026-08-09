@@ -1,0 +1,35 @@
+{
+  "name": "pi-gpt-search",
+  "version": "1.0.0",
+  "description": "Model-independent standalone web search extension for Pi coding agent powered by OpenAI Codex standalone search engine (Zero-GPT inference)",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "test": "NODE_PATH=/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent/node_modules npx tsx --test tests/*.test.ts"
+  },
+  "keywords": [
+    "pi",
+    "pi-extension",
+    "web-search",
+    "codex",
+    "openai",
+    "gemini",
+    "claude",
+    "agent"
+  ],
+  "author": "Mateus DCC",
+  "license": "MIT",
+  "dependencies": {
+    "@sinclair/typebox": "^0.34.52",
+    "typebox": "npm:@sinclair/typebox@^0.34.52"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.0.0"
+  },
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  }
+}
