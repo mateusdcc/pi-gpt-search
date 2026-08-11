@@ -1,10 +1,30 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  validateSearchToolRequest,
   validateWebRunCommand,
   serializeWebRunPayload,
   InvalidCommandError,
 } from "../src/commands";
+
+test("commands - validateSearchToolRequest normalizes tool parameters", () => {
+  assert.deepEqual(
+    validateSearchToolRequest({
+      query: "  Rust  ",
+      recency: 7,
+      domains: [" rust-lang.org "],
+      response_length: "medium",
+    }),
+    {
+      query: "Rust",
+      recency: 7,
+      domains: ["rust-lang.org"],
+      response_length: "medium",
+    }
+  );
+  assert.throws(() => validateSearchToolRequest({ query: "", domains: ["example.com"] }));
+  assert.throws(() => validateSearchToolRequest({ query: "Rust", domains: ["", 1] }));
+});
 
 test("commands - validateWebRunCommand valid search_query", () => {
   const input = {

@@ -29,11 +29,48 @@ export interface WebRunCommand {
   response_length?: ResponseLength;
 }
 
+export interface SearchToolRequest {
+  query: string;
+  recency?: number;
+  domains?: string[];
+  response_length?: ResponseLength;
+}
+
 export class InvalidCommandError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "InvalidCommandError";
   }
+}
+
+export function validateSearchToolRequest(input: unknown): SearchToolRequest {
+  if (typeof input !== "object" || input === null) {
+    throw new InvalidCommandError("Search parameters must be a non-null object");
+  }
+
+  const obj = input as Record<string, unknown>;
+  if (typeof obj.query !== "string" || !obj.query.trim()) {
+    throw new InvalidCommandError("query must be a non-empty string");
+  }
+
+  const request: SearchToolRequest = { query: obj.query.trim() };
+  if (obj.recency !== undefined) {
+    if (typeof obj.recency !== "number") throw new InvalidCommandError("recency must be a number");
+    request.recency = obj.recency;
+  }
+  if (obj.domains !== undefined) {
+    if (!Array.isArray(obj.domains) || obj.domains.some((domain) => typeof domain !== "string" || !domain.trim())) {
+      throw new InvalidCommandError("domains must be an array of non-empty strings");
+    }
+    request.domains = obj.domains.map((domain) => domain.trim());
+  }
+  if (obj.response_length !== undefined) {
+    if (obj.response_length !== "short" && obj.response_length !== "medium" && obj.response_length !== "long") {
+      throw new InvalidCommandError("response_length must be 'short', 'medium', or 'long'");
+    }
+    request.response_length = obj.response_length;
+  }
+  return request;
 }
 
 export function validateWebRunCommand(cmd: unknown): WebRunCommand {

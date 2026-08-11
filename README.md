@@ -63,17 +63,18 @@ Pi Coding Agent
 
 ## 🛠️ Usage & Commands
 
-### 1. Direct Slash Command: `/gpt-search`
+### 1. Direct Slash Commands
 
-Perform a direct web search immediately without spending LLM tokens:
-
-```text
-/gpt-search give me the repo link to codex
-```
+Run either Codex tool yourself without spending LLM tokens:
 
 ```text
-/gpt-search Rust 1.97 release notes
+/codex-search Rust 1.97 release notes
+/codex-research OpenAI Codex GitHub repository
 ```
+
+Use `codex-search` for a quick lookup and `codex-research` when you want more comprehensive results. The direct commands preserve their tool defaults: `short` for `codex-search` and `long` for `codex-research`.
+
+`/gpt-search <query>` remains available as a simple legacy alias.
 
 ### 2. Automatic LLM Tool: `codex-search`
 
@@ -83,7 +84,7 @@ Ask any model a question requiring current facts (single-query lookup):
 pi --model antigravity/gemini-3.5-flash "What is the latest release of Rust and what changed?"
 ```
 
-Accepts `query` plus optional `recency` (filter in days), `domains` (allowlist), and `response_length` (`short`/`medium`/`long`, **default: `short`**).
+The model uses it automatically for quick lookups that need current information.
 
 ## Example Log Output (with `PI_WEB_SEARCH_DEBUG=1`):
 
@@ -92,40 +93,9 @@ Accepts `query` plus optional `recency` (filter in days), `domains` (allowlist),
 [PI_WEB_SEARCH_DEBUG] req_id=maqk8a5 status=200 elapsed_ms=1863 results=41
 ```
 
-### 3. Advanced Research Harness Tool: `codex-research`
+### 3. Automatic Advanced Research Harness Tool: `codex-research`
 
-Ask models to conduct deep, iterative web research with multi-query execution, page content inspection, pattern finding, and link navigation:
-
-`search_query` items accept `q`, `recency` (filter in days), and `domains` (allowlist); `response_length` defaults to **`long`** for full-document research.
-
-```json
-{
-  "search_query": [
-    { "q": "OpenAI Codex GitHub repository", "domains": ["github.com"] }
-  ],
-  "response_length": "medium"
-}
-```
-
-Followed by opening specific document references in the same session:
-
-```json
-{
-  "open": [
-    { "ref_id": "turn0search0" }
-  ]
-}
-```
-
-And pattern matching within opened documents:
-
-```json
-{
-  "find": [
-    { "ref_id": "turn1view0", "pattern": "terminal" }
-  ]
-}
-```
+Ask models to conduct deep, iterative web research with multi-query execution, page content inspection, pattern finding, and link navigation. The model manages the research steps and sources for you.
 
 ### 4. Legacy Alias: `web` (deprecated)
 

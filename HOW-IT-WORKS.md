@@ -125,7 +125,7 @@ The `codex-research` tool introduces a full research harness capability. Instead
 ### 1. Extension Entrypoint (`src/index.ts`)
 Handles Pi extension registration:
 - Registers `codex-search`, `codex-research`, and the deprecated `web` alias.
-- Registers the direct user slash command `/gpt-search`.
+- Registers direct user slash commands `/codex-search` and `/codex-research`, plus the legacy `/gpt-search` alias.
 
 ### 2. Research Tool (`src/research-tool.ts`)
 Defines `codex-research` and its shared execution path:
