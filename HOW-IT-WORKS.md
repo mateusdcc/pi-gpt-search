@@ -103,7 +103,7 @@ The `codex-research` tool introduces a full research harness capability. Instead
                |    (https://chatgpt.com/backend-api/codex/alpha/search) |
                +---------------------------+---------------------------+
                                            |
-                                           v Returns JSON (output, results, encrypted_output)
+                                           v Returns JSON (output, results)
                +-------------------------------------------------------+
                |            Output Formatter & Citation Engine          |
                |                  (output.ts & normalize.ts)           |

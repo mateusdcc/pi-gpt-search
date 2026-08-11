@@ -184,9 +184,7 @@ export function createWebSearchCompatTool(provider: WebSearchProvider): ToolDefi
           content: [{ type: "text", text: textOutput }],
           details: {
             query,
-            resultCount: response.results.length,
             results: response.results,
-            output: response.output,
           },
         };
       } catch (err) {

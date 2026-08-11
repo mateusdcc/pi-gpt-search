@@ -25,7 +25,6 @@ test("normalizeRawSearchResult - valid item", () => {
   assert.equal(normalized?.url, "https://www.rust-lang.org");
   assert.equal(normalized?.snippet, "Empowering everyone to build reliable and efficient software.");
   assert.equal(normalized?.domain, "rust-lang.org");
-  assert.equal(normalized?.refId, "turn1search0");
   assert.equal(normalized?.ref_id, "turn1search0");
 });
 

@@ -249,9 +249,6 @@ export class CodexWebSearchProvider implements WebSearchProvider {
         }
         throw WebSearchCancelledError();
       }
-      if (err instanceof Error && "code" in err && typeof (err as { code: unknown }).code === "string") {
-        throw err;
-      }
       throw err;
     } finally {
       if (timeoutId) {

@@ -29,9 +29,7 @@ function truncate(text: string, max: number): string {
 
 interface SearchDetails {
   query?: string;
-  resultCount?: number;
   results?: SearchResult[];
-  output?: string;
   command?: { search_query?: Array<{ q?: string }> };
 }
 

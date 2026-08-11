@@ -16,7 +16,7 @@ export function cleanCitationMarkers(text: string, results: SearchResult[] = [])
 
   const refToEntryMap = new Map<string, { num: number; item: SearchResult }>();
   results.forEach((r, idx) => {
-    const ref = r.ref_id || r.refId;
+    const ref = r.ref_id;
     if (ref) {
       refToEntryMap.set(ref, { num: idx + 1, item: r });
     }
@@ -37,12 +37,6 @@ export function cleanCitationMarkers(text: string, results: SearchResult[] = [])
       const entry = refToEntryMap.get(cleanInner)!;
       const label = `[${entry.num}]`;
       return entry.item.url ? formatTerminalHyperlink(entry.item.url, label) : label;
-    }
-
-    const matchedResult = results.find((r) => (r.ref_id || r.refId) === cleanInner);
-    if (matchedResult && matchedResult.url) {
-      const title = matchedResult.title ? matchedResult.title : matchedResult.url;
-      return formatTerminalHyperlink(matchedResult.url, `[${cleanInner}: ${title}]`);
     }
 
     return `[${cleanInner}]`;
@@ -80,8 +74,7 @@ export function formatWebToolResult(command: WebRunCommand, response: SearchResp
           const num = idx + 1;
           const title = r.title ? r.title : r.url;
           const refStr = r.ref_id ? ` (${r.ref_id})` : "";
-          const clickableUrl = formatTerminalHyperlink(r.url, r.url);
-          return `[${num}] ${title}${refStr} - ${clickableUrl}`;
+          const clickableUrl = formatTerminalHyperlink(r.url, r.url);          return `[${num}] ${title}${refStr} - ${clickableUrl}`;
         });
 
       if (sourcesList.length > 0) {
@@ -112,11 +105,7 @@ export function formatWebToolResult(command: WebRunCommand, response: SearchResp
     ],
     details: {
       command,
-      outputLength: primaryText.length,
-      resultCount: response.results ? response.results.length : 0,
       results: response.results,
-      output: response.output,
-      encrypted_output: response.encrypted_output,
     },
   };
 }
