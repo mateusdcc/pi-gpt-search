@@ -3,7 +3,7 @@ import { CodexWebSearchProvider } from "./codex-provider.js";
 import { createResearchTool } from "./research-tool.js";
 import { createSearchTool } from "./search-tool.js";
 import { createLegacyWebTool } from "./legacy-web-tool.js";
-import { formatWebToolResult } from "./output.js";
+import { registerSearchCommand } from "./search-command.js";
 
 export default function (pi: ExtensionAPI) {
   const provider = new CodexWebSearchProvider();
@@ -18,35 +18,5 @@ export default function (pi: ExtensionAPI) {
   pi.registerTool(createLegacyWebTool(provider));
 
   // Register /gpt-search slash command
-  pi.registerCommand("gpt-search", {
-    description: "Search the web directly using Codex standalone web search engine",
-    handler: async (args, ctx) => {
-      const query = args ? args.trim() : "";
-      if (!query) {
-        ctx.ui.notify("Please provide a search query. Example: /gpt-search Rust 1.97 release notes", "warning");
-        return;
-      }
-
-      ctx.ui.setStatus("gpt-search", `Searching web for "${query}"...`);
-      try {
-        const command = { search_query: [{ q: query }] };
-        const response = await provider.execute(command, undefined, ctx.signal);
-        ctx.ui.setStatus("gpt-search", undefined);
-
-        const formatted = formatWebToolResult(command, response);
-        const textOutput = formatted.content[0].text;
-        ctx.ui.notify(`Web action succeeded (${response.results.length} results)`, "info");
-
-        if ("print" in ctx.ui && typeof (ctx.ui as { print?: (text: string) => void }).print === "function") {
-          (ctx.ui as { print: (text: string) => void }).print(textOutput);
-        } else {
-          console.log(textOutput);
-        }
-      } catch (err) {
-        ctx.ui.setStatus("gpt-search", undefined);
-        const errorMsg = err instanceof Error ? err.message : String(err);
-        ctx.ui.notify(`Search failed: ${errorMsg}`, "error");
-      }
-    },
-  });
+  registerSearchCommand(pi, provider);
 }
