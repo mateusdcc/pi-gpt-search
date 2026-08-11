@@ -1,12 +1,13 @@
 {
   "name": "pi-gpt-search",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Model-independent standalone web search extension for Pi coding agent powered by OpenAI Codex standalone search engine (Zero-GPT inference)",
   "main": "src/index.ts",
   "type": "module",
   "files": [
     "src/**/*",
     "README.md",
+    "CHANGELOG.md",
     "HOW-IT-WORKS.md",
     "HOW-IT-WAS-EXTRACT.md"
   ],
