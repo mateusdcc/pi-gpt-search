@@ -74,7 +74,8 @@ export function formatWebToolResult(command: WebRunCommand, response: SearchResp
           const num = idx + 1;
           const title = r.title ? r.title : r.url;
           const refStr = r.ref_id ? ` (${r.ref_id})` : "";
-          const clickableUrl = formatTerminalHyperlink(r.url, r.url);          return `[${num}] ${title}${refStr} - ${clickableUrl}`;
+          const clickableUrl = formatTerminalHyperlink(r.url, r.url);
+          return `[${num}] ${title}${refStr} - ${clickableUrl}`;
         });
 
       if (sourcesList.length > 0) {

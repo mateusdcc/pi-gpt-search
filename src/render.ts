@@ -2,6 +2,7 @@ import { Text } from "@earendil-works/pi-tui";
 import type { Component } from "@earendil-works/pi-tui";
 import type { AgentToolResult, Theme, ToolRenderResultOptions } from "@earendil-works/pi-coding-agent";
 import type { SearchResult } from "./normalize.js";
+import { cleanCitationMarkers } from "./output.js";
 
 /**
  * Host Theme accessors available at render time beyond the legacy `Theme`
@@ -14,8 +15,9 @@ interface RichTheme extends Theme {
   tree?: { branch?: string; last?: string };
 }
 
-const MAX_ANSWER = 3; // results shown in the Answer section (top hits)
+const MAX_RESULTS = 3; // structured hits shown when no backend output text exists
 const MAX_SOURCES = 6; // index rows shown when collapsed
+const MAX_PREVIEW = 600; // backend content preview length when collapsed
 
 function domainOf(url: string | undefined): string {
   if (!url) return "";
@@ -67,13 +69,22 @@ export function makeWebToolRenderer(title: string) {
         lines.push(`${theme.fg("muted", "Query:")} ${theme.fg("text", query)}`);
       }
 
-      // Answer: the top hits, with title/domain/URL/snippet — the actual
-      // content of the search, from structured results (not the raw
-      // transcript, which carries wordlim/Published/Crawled metadata noise).
-      const top = results.slice(0, MAX_ANSWER);
-      if (top.length > 0) {
-        lines.push(theme.fg("toolTitle", "Answer"));
-        for (const [i, r] of top.entries()) {
+      // Results: the actual backend content the model received (tool
+      // transparency), citation markers cleaned. Collapsed shows a preview;
+      // expanded shows the full output (open/find/click document content).
+      const rawContent = result.content?.[0]?.type === "text" ? result.content[0].text : "";
+      const content = cleanCitationMarkers(rawContent, results).trim();
+      if (content) {
+        lines.push(theme.fg("toolTitle", "Results"));
+        const shown = expanded ? content : truncate(content, MAX_PREVIEW);
+        lines.push(...shown.split("\n").map((l) => ` ${theme.fg("text", l)}`));
+        if (!expanded && content.length > MAX_PREVIEW) {
+          lines.push(theme.fg("muted", "  \u2026 (Ctrl+O to expand)"));
+        }
+      } else if (results.length > 0) {
+        // Fallback: no output text — summarize structured hits.
+        lines.push(theme.fg("toolTitle", "Results"));
+        for (const [i, r] of results.slice(0, MAX_RESULTS).entries()) {
           const num = theme.fg("accent", `[${i + 1}]`);
           const name = r.title ? r.title : r.url ? r.url : "Untitled";
           const domain = domainOf(r.url);
@@ -86,11 +97,13 @@ export function makeWebToolRenderer(title: string) {
             lines.push(`   ${theme.fg("muted", truncate(r.snippet, 180))}`);
           }
         }
+      } else {
+        lines.push(theme.fg("muted", "No sources returned"));
       }
 
-      // Sources: the full index. Collapsed shows MAX_SOURCES rows + hint;
-      // expanded shows everything. Index rows carry no snippet so the
-      // expanded view stays scannable at 42+ results.
+      // Sources: the full numbered index. Collapsed shows MAX_SOURCES rows +
+      // hint; expanded shows everything. Index rows carry title/domain only so
+      // the expanded view stays scannable at 42+ results.
       if (results.length > 0) {
         lines.push(theme.fg("toolTitle", "Sources"));
         const shown = expanded ? results : results.slice(0, MAX_SOURCES);
@@ -102,9 +115,6 @@ export function makeWebToolRenderer(title: string) {
           const name = r.title ? r.title : r.url ? r.url : "Untitled";
           const domain = domainOf(r.url);
           const meta = domain ? ` ${theme.fg("dim", `(${domain})`)}` : "";
-          // Last shown row uses the last glyph only when the tree really ends
-          // there; with more results collapsed below, it's a branch so the
-          // expand hint continues the tree.
           const hasMore = !expanded && results.length > shown.length;
           const glyph = i === shown.length - 1 && !hasMore ? last : branch;
           lines.push(` ${theme.fg("dim", glyph)} ${num} ${theme.fg("text", name)}${meta}`);
@@ -115,8 +125,6 @@ export function makeWebToolRenderer(title: string) {
             ` ${theme.fg("dim", last)} ${theme.fg("muted", `\u2026 ${remaining} more result${remaining === 1 ? "" : "s"} (Ctrl+O to expand)`)}`
           );
         }
-      } else if (top.length === 0) {
-        lines.push(theme.fg("muted", "No sources returned"));
       }
 
       return new Text(lines.join("\n"), 0, 0);
