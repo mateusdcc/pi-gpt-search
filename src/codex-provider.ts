@@ -7,6 +7,7 @@ import {
   validateWebRunCommand,
   serializeWebRunPayload,
   type WebRunCommand,
+  type SearchQuery,
 } from "./commands";
 import {
   CodexAuthMissingError,
@@ -118,9 +119,17 @@ export class CodexWebSearchProvider implements WebSearchProvider {
   }
 
   async search(request: SearchRequest, signal?: AbortSignal): Promise<SearchResponse> {
-    const command: WebRunCommand = {
-      search_query: [{ q: request.query }],
-    };
+    const searchQuery: SearchQuery = { q: request.query };
+    if (request.recency !== undefined) {
+      searchQuery.recency = request.recency;
+    }
+    if (request.domains && request.domains.length > 0) {
+      searchQuery.domains = request.domains;
+    }
+    const command: WebRunCommand = { search_query: [searchQuery] };
+    if (request.response_length) {
+      command.response_length = request.response_length;
+    }
     return this.execute(command, undefined, signal);
   }
 

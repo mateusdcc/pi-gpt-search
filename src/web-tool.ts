@@ -41,8 +41,8 @@ export const WebToolParameters = Type.Object({
     Type.Array(
       Type.Object({
         q: Type.String({ description: "Search query string" }),
-        recency: Type.Optional(Type.Number({ description: "Optional recency filter in days" })),
-        domains: Type.Optional(Type.Array(Type.String(), { description: "Allowed domain filters" })),
+        recency: Type.Optional(Type.Number({ description: "Recency filter in days (default: no filter)" })),
+        domains: Type.Optional(Type.Array(Type.String(), { description: "Allowed domain filters (default: no filter)" })),
       }),
       { description: "Search queries to execute" }
     )
@@ -76,7 +76,7 @@ export const WebToolParameters = Type.Object({
   ),
   response_length: Type.Optional(
     Type.Union([Type.Literal("short"), Type.Literal("medium"), Type.Literal("long")], {
-      description: "Desired length of returned content output",
+      description: "Desired length of returned content output (default: long)",
     })
   ),
 });
@@ -113,6 +113,9 @@ export function createWebTool(provider: WebSearchProvider): ToolDefinition {
     parameters: WebToolParameters,
     async execute(_toolCallId, params, signal, onUpdate, _ctx) {
       const command = params as WebRunCommand;
+      if (!command.response_length) {
+        command.response_length = "long";
+      }
       if (typeof onUpdate === "function") {
         const statusMsg = describeCommandStatus(command);
         onUpdate({
@@ -142,16 +145,32 @@ export function createWebSearchCompatTool(provider: WebSearchProvider): ToolDefi
     name: "codex-search",
     label: "Codex Search",
     description:
-      "Single-query Codex search tool. Translates directly into codex-research({ search_query: [{ q: query }] }).",
+      "Single-query Codex search tool. Translates directly into codex-research({ search_query: [{ q: query }] }). Supports optional recency/domains filters and response_length (default: short).",
     promptSnippet: "Search the web for current or externally verifiable information",
     promptGuidelines: [
       "Use codex-search for simple web lookups. For iterative research (opening pages, searching patterns), use the 'codex-research' tool instead."
     ],
     parameters: Type.Object({
       query: Type.String({ description: "The search query to look up on the web" }),
+      recency: Type.Optional(
+        Type.Number({ description: "Recency filter in days (default: no filter)" })
+      ),
+      domains: Type.Optional(
+        Type.Array(Type.String(), { description: "Allowed domain filters (default: no filter)" })
+      ),
+      response_length: Type.Optional(
+        Type.Union([Type.Literal("short"), Type.Literal("medium"), Type.Literal("long")], {
+          description: "Desired length of returned content output (default: short)",
+        })
+      ),
     }),
     async execute(_toolCallId, params, signal, onUpdate, _ctx) {
-      const query = (params as { query: string }).query;
+      const { query, recency, domains, response_length = "short" } = params as {
+        query: string;
+        recency?: number;
+        domains?: string[];
+        response_length?: "short" | "medium" | "long";
+      };
       if (typeof onUpdate === "function") {
         onUpdate({
           content: [{ type: "text", text: `Searching web for "${query}"...` }],
@@ -159,7 +178,7 @@ export function createWebSearchCompatTool(provider: WebSearchProvider): ToolDefi
         });
       }
       try {
-        const response = await provider.search({ query }, signal);
+        const response = await provider.search({ query, recency, domains, response_length }, signal);
         const textOutput = formatSearchResponseText(query, response);
         return {
           content: [{ type: "text", text: textOutput }],

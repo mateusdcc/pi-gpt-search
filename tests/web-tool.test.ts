@@ -133,7 +133,10 @@ test("web-tool - createWebTool invokes onUpdate progress handler", async () => {
 
   assert.equal(updates.length, 1);
   assert.equal(updates[0].content[0].text, 'Searching web for "rust release"...');
-  assert.deepEqual(executedCommand, { search_query: [{ q: "rust release" }] });
+  assert.deepEqual(executedCommand, {
+    search_query: [{ q: "rust release" }],
+    response_length: "long",
+  });
   assert.ok(res.content[0].text.startsWith("Backend output for web tool"));
 });
 
@@ -172,6 +175,11 @@ test("web-tool - createWebSearchCompatTool translates query into search and call
 
   assert.equal(updates.length, 1);
   assert.equal(updates[0].content[0].text, 'Searching web for "pi agent"...');
-  assert.deepEqual(searchCalledWith, { query: "pi agent" });
+  assert.deepEqual(searchCalledWith, {
+    query: "pi agent",
+    recency: undefined,
+    domains: undefined,
+    response_length: "short",
+  });
   assert.match(res.content[0].text, /Result/);
 });

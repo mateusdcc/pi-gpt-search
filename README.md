@@ -83,6 +83,8 @@ Ask any model a question requiring current facts (single-query lookup):
 pi --model antigravity/gemini-3.5-flash "What is the latest release of Rust and what changed?"
 ```
 
+Accepts `query` plus optional `recency` (filter in days), `domains` (allowlist), and `response_length` (`short`/`medium`/`long`, **default: `short`**).
+
 ### Example Log Output (with `PI_WEB_SEARCH_DEBUG=1`):
 
 ```text
@@ -93,6 +95,8 @@ pi --model antigravity/gemini-3.5-flash "What is the latest release of Rust and 
 ### 3. Advanced Research Harness Tool: `codex-research`
 
 Ask models to conduct deep, iterative web research with multi-query execution, page content inspection, pattern finding, and link navigation:
+
+`search_query` items accept `q`, `recency` (filter in days), and `domains` (allowlist); `response_length` defaults to **`long`** for full-document research.
 
 ```json
 {
