@@ -24,7 +24,7 @@ The `codex-search` tool provides a simple interface for single-query searches (t
                                            v Tool Call: codex-search({ query: "..." })
                +-------------------------------------------------------+
                |              codex-search Search Tool                |
-               |                       (web-tool.ts)                   |
+               |                       (research-tool.ts)             |
                |     - Wraps query into codex-research({ search_query: ... }) |
                |     - Emits live TUI status updates via onUpdate      |
                +---------------------------+---------------------------+
@@ -80,7 +80,7 @@ The `codex-research` tool introduces a full research harness capability. Instead
                                            v Tool Call: codex-research({ search_query, open, find, click, response_length })
                +-------------------------------------------------------+
                |                codex-research Research Harness        |
-               |                       (web-tool.ts)                   |
+               |                       (research-tool.ts)             |
                |     - Emits TUI status updates via onUpdate           |
                |     - Collapsible TUI rendering (Ctrl+O to expand)    |
                +---------------------------+---------------------------+
@@ -129,7 +129,7 @@ Handles Pi Extension registration cleanly:
 - Registers primary research harness tool `codex-research`.
 - Registers direct user slash command `/gpt-search`.
 
-### 2. Model-Facing Research Tools (`src/web-tool.ts`)
+### 2. Model-Facing Research Tools (`src/research-tool.ts`)
 Exposes both single-query search and rich research actions to any active Pi session model:
 - **Single-Query Search (`codex-search`):** Accepts `{ query: string }` and translates it into a single-query `search_query` execution.
 - **Rich Research Harness (`codex-research`):** Supports full research actions (`search_query`, `open`, `find`, `click`, `response_length`).

@@ -1,18 +1,21 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { CodexWebSearchProvider } from "./codex-provider";
-import { createWebTool, createWebSearchCompatTool } from "./web-tool";
+import { createResearchTool } from "./research-tool";
+import { createSearchTool } from "./search-tool";
+import { createLegacyWebTool } from "./legacy-web-tool";
 import { formatWebToolResult } from "./output";
 
 export default function (pi: ExtensionAPI) {
   const provider = new CodexWebSearchProvider();
 
   // Register codex-research harness tool
-  const webTool = createWebTool(provider);
-  pi.registerTool(webTool);
+  pi.registerTool(createResearchTool(provider));
 
   // Register codex-search single-query wrapper
-  const webSearchCompatTool = createWebSearchCompatTool(provider);
-  pi.registerTool(webSearchCompatTool);
+  pi.registerTool(createSearchTool(provider));
+
+  // Register legacy `web` alias (deprecated, delegates to codex-research)
+  pi.registerTool(createLegacyWebTool(provider));
 
   // Register /gpt-search slash command
   pi.registerCommand("gpt-search", {
