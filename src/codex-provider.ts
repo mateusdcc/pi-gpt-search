@@ -1,14 +1,14 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
-import type { SearchRequest, SearchExecutionOptions, WebSearchProvider } from "./provider";
-import { normalizeSearchResponseBody, type SearchResponse } from "./normalize";
+import type { SearchRequest, SearchExecutionOptions, WebSearchProvider } from "./provider.js";
+import { normalizeSearchResponseBody, type SearchResponse } from "./normalize.js";
 import {
   validateWebRunCommand,
   serializeWebRunPayload,
   type WebRunCommand,
-} from "./commands";
-import { filterSearchContext, type SearchContextMode } from "./context";
+  type SearchQuery,
+} from "./commands.js";
 import {
   CodexAuthMissingError,
   CodexAuthExpiredError,
@@ -16,7 +16,7 @@ import {
   CodexHttpError,
   WebSearchTimeoutError,
   WebSearchCancelledError,
-} from "./errors";
+} from "./errors.js";
 
 export interface CodexAuthCredentials {
   accessToken: string;
@@ -83,7 +83,6 @@ export interface CodexWebSearchProviderOptions {
   customFetch?: typeof fetch;
   sessionId?: string;
   model?: string;
-  defaultContextMode?: SearchContextMode;
   maxRetries?: number;
 }
 
@@ -97,7 +96,6 @@ export class CodexWebSearchProvider implements WebSearchProvider {
   private fetchImpl: typeof fetch;
   private currentSessionId: string;
   private model: string;
-  private defaultContextMode: SearchContextMode;
   private maxRetries: number;
 
   constructor(options?: CodexWebSearchProviderOptions) {
@@ -105,7 +103,6 @@ export class CodexWebSearchProvider implements WebSearchProvider {
     this.timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.fetchImpl = options?.customFetch ?? globalThis.fetch;
     this.model = options?.model ?? DEFAULT_MODEL;
-    this.defaultContextMode = options?.defaultContextMode ?? "none";
     this.maxRetries = options?.maxRetries ?? 2;
     this.currentSessionId =
       options?.sessionId ?? `search_session_${Math.random().toString(36).substring(2, 10)}`;
@@ -122,9 +119,17 @@ export class CodexWebSearchProvider implements WebSearchProvider {
   }
 
   async search(request: SearchRequest, signal?: AbortSignal): Promise<SearchResponse> {
-    const command: WebRunCommand = {
-      search_query: [{ q: request.query }],
-    };
+    const searchQuery: SearchQuery = { q: request.query };
+    if (request.recency !== undefined) {
+      searchQuery.recency = request.recency;
+    }
+    if (request.domains && request.domains.length > 0) {
+      searchQuery.domains = request.domains;
+    }
+    const command: WebRunCommand = { search_query: [searchQuery] };
+    if (request.response_length) {
+      command.response_length = request.response_length;
+    }
     return this.execute(command, undefined, signal);
   }
 
@@ -161,15 +166,9 @@ export class CodexWebSearchProvider implements WebSearchProvider {
     }
 
     const sessionId = options?.sessionId ?? this.currentSessionId;
-    const contextMode = options?.contextMode ?? this.defaultContextMode;
-    const filteredContext = options?.conversationTurns
-      ? filterSearchContext(options.conversationTurns, contextMode)
-      : [];
-
     const payload = serializeWebRunPayload(validatedCmd, {
       sessionId,
       model: this.model,
-      context: filteredContext.length > 0 ? filteredContext : undefined,
     });
 
     const startTime = Date.now();
@@ -249,9 +248,6 @@ export class CodexWebSearchProvider implements WebSearchProvider {
           throw new WebSearchTimeoutError(this.timeoutMs);
         }
         throw new WebSearchCancelledError();
-      }
-      if (err instanceof Error && "code" in err && typeof (err as { code: unknown }).code === "string") {
-        throw err;
       }
       throw err;
     } finally {

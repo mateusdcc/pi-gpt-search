@@ -23,9 +23,9 @@ The `codex-search` tool provides a simple interface for single-query searches (t
                                            |
                                            v Tool Call: codex-search({ query: "..." })
                +-------------------------------------------------------+
-               |              codex-search Compatibility Tool            |
-               |                       (web-tool.ts)                   |
-               |     - Wraps query into web({ search_query: ... })     |
+               |              codex-search Search Tool                |
+               |                       (search-tool.ts)               |
+               |     - Wraps query into a standalone search command   |
                |     - Emits live TUI status updates via onUpdate      |
                +---------------------------+---------------------------+
                                            |
@@ -62,9 +62,9 @@ The `codex-search` tool provides a simple interface for single-query searches (t
 
 ---
 
-### 2. Multi-Step Web Research Harness Flow (`web`)
+### 2. Multi-Step Research Harness Flow (`codex-research`)
 
-The `web` tool introduces a full research harness capability. Instead of stopping after a single search query, the active model can execute rich, multi-action research commands (`search_query`, `open`, `find`, `click`, `response_length`) across a persistent research session to investigate documents in depth.
+The `codex-research` tool introduces a full research harness capability. Instead of stopping after a single search query, the active model can execute rich, multi-action research commands (`search_query`, `open`, `find`, `click`, `response_length`) across a persistent research session to investigate documents in depth.
 
 ```text
                +-------------------------------------------------------+
@@ -77,10 +77,10 @@ The `web` tool introduces a full research harness capability. Instead of stoppin
                |      (Gemini / Claude / DeepSeek / Ollama / etc.)     |
                +---------------------------+---------------------------+
                                            |
-                                           v Tool Call: web({ search_query, open, find, click, response_length })
+                                           v Tool Call: codex-research({ search_query, open, find, click, response_length })
                +-------------------------------------------------------+
-               |                   web Research Harness                |
-               |                       (web-tool.ts)                   |
+               |                codex-research Research Harness        |
+               |                       (research-tool.ts)             |
                |     - Emits TUI status updates via onUpdate           |
                |     - Collapsible TUI rendering (Ctrl+O to expand)    |
                +---------------------------+---------------------------+
@@ -90,7 +90,6 @@ The `web` tool introduces a full research harness capability. Instead of stoppin
                |                CodexWebSearchProvider                 |
                |                  (codex-provider.ts)                  |
                |     - Session ID mapping across search/open/find      |
-               |     - Context shaping (filterSearchContext)           |
                |     - Auth loading (~/.codex/auth.json or .env)       |
                +---------------------------+---------------------------+
                                            |
@@ -103,7 +102,7 @@ The `web` tool introduces a full research harness capability. Instead of stoppin
                |    (https://chatgpt.com/backend-api/codex/alpha/search) |
                +---------------------------+---------------------------+
                                            |
-                                           v Returns JSON (output, results, encrypted_output)
+                                           v Returns JSON (output, results)
                +-------------------------------------------------------+
                |            Output Formatter & Citation Engine          |
                |                  (output.ts & normalize.ts)           |
@@ -124,59 +123,60 @@ The `web` tool introduces a full research harness capability. Instead of stoppin
 ## 🛠️ Core Modules & Responsibilities
 
 ### 1. Extension Entrypoint (`src/index.ts`)
-Handles Pi Extension registration cleanly:
-- Registers compatibility tool wrapper `codex-search`.
-- Registers primary research harness tool `web`.
-- Registers direct user slash command `/gpt-search`.
+Handles Pi extension registration:
+- Registers `codex-search`, `codex-research`, and the deprecated `web` alias.
+- Registers the direct user slash command `/gpt-search`.
 
-### 2. Model-Facing Research Tools (`src/web-tool.ts`)
-Exposes both single-query search and rich research actions to any active Pi session model:
-- **Single-Query Search (`codex-search`):** Accepts `{ query: string }` and translates it into a single-query `search_query` execution.
-- **Rich Research Harness (`web`):** Supports full research actions (`search_query`, `open`, `find`, `click`, `response_length`).
-- **TUI Progress Feedback:** Calls `onUpdate()` to report live stage descriptions (e.g. `Searching web for "query"...`, `Opening document turn0search0...`).
-- **Collapsible Display (`renderCall` & `renderResult`):** Collapses completed execution rows to a single line `✓ Web action complete (N results) (Ctrl+O to expand)`.
-- **System Guidance:** Teaches the active model when to browse, how to execute multi-step research, and how to cite sources inline.
+### 2. Research Tool (`src/research-tool.ts`)
+Defines `codex-research` and its shared execution path:
+- Supports `search_query`, `open`, `find`, `click`, and `response_length`.
+- Reports progress through `onUpdate()`.
+- Formats provider responses before returning them to the model and renderer.
 
-### 3. Command DTOs & Validation (`src/commands.ts`)
-Defines structured command DTOs and validation logic:
-- `search_query`: Multi-query array with optional `recency` filter and `domains` list.
-- `open`: Opens document content by `ref_id` (e.g. `turn0search0`) with optional `lineno`.
-- `click`: Clicks link or element by `id` inside document `ref_id`.
-- `find`: Searches for pattern inside document `ref_id`.
+### 3. Search Tool (`src/search-tool.ts`)
+Defines the single-query `codex-search` tool:
+- Accepts `query`, `recency`, `domains`, and `response_length`.
+- Translates the request into the provider's standalone search contract.
+
+### 4. Legacy Alias (`src/legacy-web-tool.ts`)
+Preserves backward compatibility for `web`:
+- Delegates to the same execution path as `codex-research`.
+- Prepends a deprecation notice to every legacy invocation.
+
+### 5. Shared Tool Presentation
+Shared tool concerns are separated by responsibility:
+- `src/web-schemas.ts`: TypeBox parameters and model browsing guidance.
+- `src/web-format.ts`: Search result text and command status formatting.
+- `src/render.ts`: Themed collapsed and expanded result rendering.
+
+### 6. Command DTOs & Validation (`src/commands.ts`)
+Defines command validation and endpoint serialization:
+- `search_query`: Multi-query array with optional `recency` and `domains` filters.
+- `open`: Opens document content by `ref_id` with an optional `lineno`.
+- `click`: Clicks an element by `id` inside a document.
+- `find`: Searches for a pattern inside a document.
 - `response_length`: Controls output granularity (`short`, `medium`, `long`).
-- `serializeWebRunPayload`: Constructs standard JSON request payloads for OpenAI search endpoint.
 
-### 4. Provider Contract (`src/provider.ts`)
-Defines abstract `WebSearchProvider` interface contract supporting both legacy `search({ query })` and rich `execute(command, options)` methods with session identity management (`getSessionId`, `setSessionId`).
+### 7. Provider Contract (`src/provider.ts`)
+Defines the `WebSearchProvider` contract for standalone search and rich research commands with shared session identity.
 
-### 5. Codex Transport Layer (`src/codex-provider.ts`)
+### 8. Codex Transport Layer (`src/codex-provider.ts`)
 Interacts directly with OpenAI's search backend:
-- Endpoint: `https://chatgpt.com/backend-api/codex/alpha/search`
-- Auth: Automatically resolves `~/.codex/auth.json` (from `codex login`) or `CODEX_ACCESS_TOKEN` / `CODEX_ACCOUNT_ID` in `.env`.
-- Session Identity: Maintains stable session `id` across calls so reference IDs (`turn0search0`) survive across sequential `search` -> `open` -> `find` steps.
-- Resilience: Retries transient HTTP 502/503/504 gateway errors automatically.
+- Resolves authentication from `~/.codex/auth.json` or environment variables.
+- Maintains a stable session ID across `search`, `open`, and `find` calls.
+- Retries transient HTTP 502, 503, and 504 responses.
 
-### 6. Context Filter (`src/context.ts`)
-Optional conversation context shaper (`SearchContextMode = "none" | "recent"`):
-- Filters out system prompts, developer instructions, tool execution messages, env dumps, and API tokens before sending context to search.
+### 9. Output Formatter & Citation Engine (`src/output.ts`)
+Transforms backend responses into model-facing tool results:
+- Preserves cleaned backend output in `content[0].text`.
+- Converts private citation markers and turn IDs into terminal hyperlinks.
+- Appends a numbered source index for model attribution and direct command output.
 
-### 7. Output Formatter & Citation Engine (`src/output.ts`)
-Transforms backend response into clean tool results:
-- **Model Output Preservation:** Passes raw backend model-oriented text (`response.output`) to the active model as `content[0].text`.
-- **OSC 8 Terminal Hyperlinks:** Converts private Unicode citation markers (`\uE200cite\uE202turn0search0\uE201`) and turn IDs into clickable OSC 8 ANSI escape sequences (`\u001b]8;;<URL>\u001b\\[1]\u001b]8;;\u001b\\`). Holding `Cmd`/`Ctrl` underlines the link and clicking opens the web page directly.
-- **Sources List:** Appends a numbered `Sources:` index listing titles and URLs.
+### 10. Response Normalization (`src/normalize.ts`)
+Normalizes supported response fields: `ref_id`, `url`, `title`, `snippet`, `domain`, and `type`.
 
-### 8. Response Normalization (`src/normalize.ts`)
-Normalizes API response payloads while preserving forward-compatible fields (`ref_id`, `url`, `title`, `snippet`, `domain`, `type`, `raw`).
-
-### 9. Error Hierarchy (`src/errors.ts`)
-Typed error classes:
-- `CodexAuthMissingError`: Unauthenticated session.
-- `CodexAuthExpiredError`: HTTP 401/403 expired credentials.
-- `CodexRateLimitError`: HTTP 429 rate limit exceeded.
-- `CodexHttpError`: HTTP 5xx backend errors.
-- `WebSearchTimeoutError`: Request timeout.
-- `WebSearchCancelledError`: User cancellation.
+### 11. Error Hierarchy (`src/errors.ts`)
+Provides typed errors for authentication, authorization, rate limits, HTTP failures, timeouts, and cancellation.
 
 ---
 

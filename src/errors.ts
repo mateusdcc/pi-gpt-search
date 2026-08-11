@@ -1,5 +1,16 @@
+export type WebSearchErrorCode =
+  | "CODEX_AUTH_MISSING"
+  | "CODEX_AUTH_EXPIRED"
+  | "CODEX_RATE_LIMIT"
+  | "CODEX_HTTP_ERROR"
+  | "WEB_SEARCH_TIMEOUT"
+  | "WEB_SEARCH_CANCELLED";
+
 export class WebSearchError extends Error {
-  constructor(message: string, public readonly code: string) {
+  constructor(
+    message: string,
+    public readonly code: WebSearchErrorCode
+  ) {
     super(message);
     this.name = "WebSearchError";
   }
@@ -33,7 +44,10 @@ export class CodexRateLimitError extends WebSearchError {
 }
 
 export class CodexHttpError extends WebSearchError {
-  constructor(public readonly statusCode: number, details: string) {
+  constructor(
+    public readonly statusCode: number,
+    details: string
+  ) {
     super(`Codex search HTTP ${statusCode}: ${details}`, "CODEX_HTTP_ERROR");
     this.name = "CodexHttpError";
   }

@@ -28,6 +28,28 @@ test("provider-integration: success 200 OK with results", async () => {
   assert.equal(res.results[0].url, "https://example.com");
 });
 
+test("provider-integration: search serializes filters and response length", async () => {
+  let capturedBody: Record<string, unknown> | null = null;
+  const customFetch: typeof fetch = async (_url, options) => {
+    capturedBody = JSON.parse((options?.body as string) || "{}");
+    return new Response(JSON.stringify({ results: [] }), { status: 200 });
+  };
+
+  const provider = new CodexWebSearchProvider({ customFetch });
+  await provider.search({
+    query: "release notes",
+    recency: 7,
+    domains: ["example.com"],
+    response_length: "medium",
+  });
+
+  assert.ok(capturedBody);
+  assert.deepEqual(capturedBody.commands, {
+    search_query: [{ q: "release notes", recency: 7, domains: ["example.com"] }],
+    response_length: "medium",
+  });
+});
+
 test("provider-integration: execute serializes rich commands correctly", async () => {
   let capturedBody: Record<string, unknown> | null = null;
   const customFetch: typeof fetch = async (_url, options) => {
@@ -66,7 +88,7 @@ test("provider-integration: 401 returns CodexAuthExpiredError", async () => {
     async () => {
       await provider.search({ query: "test" });
     },
-    (err: unknown) => err instanceof CodexAuthExpiredError
+    (err: unknown) => err instanceof CodexAuthExpiredError && err.code === "CODEX_AUTH_EXPIRED"
   );
 });
 
@@ -80,7 +102,7 @@ test("provider-integration: 403 returns CodexAuthExpiredError", async () => {
     async () => {
       await provider.search({ query: "test" });
     },
-    (err: unknown) => err instanceof CodexAuthExpiredError
+    (err: unknown) => err instanceof CodexAuthExpiredError && err.code === "CODEX_AUTH_EXPIRED"
   );
 });
 
@@ -94,7 +116,7 @@ test("provider-integration: 429 returns CodexRateLimitError", async () => {
     async () => {
       await provider.search({ query: "test" });
     },
-    (err: unknown) => err instanceof CodexRateLimitError
+    (err: unknown) => err instanceof CodexRateLimitError && err.code === "CODEX_RATE_LIMIT"
   );
 });
 
@@ -108,7 +130,8 @@ test("provider-integration: 500 returns CodexHttpError", async () => {
     async () => {
       await provider.search({ query: "test" });
     },
-    (err: unknown) => err instanceof CodexHttpError && err.statusCode === 500
+    (err: unknown) =>
+      err instanceof CodexHttpError && err.statusCode === 500 && err.code === "CODEX_HTTP_ERROR"
   );
 });
 
@@ -131,7 +154,7 @@ test("provider-integration: timeout throws WebSearchTimeoutError", async () => {
     async () => {
       await provider.search({ query: "test" });
     },
-    (err: unknown) => err instanceof WebSearchTimeoutError
+    (err: unknown) => err instanceof WebSearchTimeoutError && err.code === "WEB_SEARCH_TIMEOUT"
   );
 });
 
@@ -148,6 +171,6 @@ test("provider-integration: manual cancellation throws WebSearchCancelledError",
     async () => {
       await provider.search({ query: "test" }, controller.signal);
     },
-    (err: unknown) => err instanceof WebSearchCancelledError
+    (err: unknown) => err instanceof WebSearchCancelledError && err.code === "WEB_SEARCH_CANCELLED"
   );
 });

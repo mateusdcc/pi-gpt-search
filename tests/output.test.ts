@@ -32,7 +32,6 @@ test("output - formatWebToolResult cleans citation markers and appends hyperlink
     formatted.content[0].text,
     "Raw backend model output with citations \u001b]8;;https://rust-lang.org\u001b\\[1]\u001b]8;;\u001b\\\n\nSources:\n[1] Rust (turn0search0) - \u001b]8;;https://rust-lang.org\u001b\\https://rust-lang.org\u001b]8;;\u001b\\"
   );
-  assert.equal(formatted.details.resultCount, 1);
   assert.deepEqual(formatted.details.results, response.results);
 });
 

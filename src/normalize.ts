@@ -1,19 +1,15 @@
 export interface SearchResult {
   type?: string;
-  refId?: string;
   ref_id?: string;
   url?: string;
   title?: string;
   snippet?: string;
   domain?: string;
-  raw?: unknown;
 }
 
 export interface SearchResponse {
   output?: string;
   results: SearchResult[];
-  encrypted_output?: string;
-  raw?: Record<string, unknown>;
 }
 
 export function normalizeRawSearchResult(item: unknown): SearchResult | null {
@@ -31,15 +27,10 @@ export function normalizeRawSearchResult(item: unknown): SearchResult | null {
     return null;
   }
 
-  const result: SearchResult = {
-    raw: item,
-  };
+  const result: SearchResult = {};
 
   if (url) result.url = url;
-  if (refId) {
-    result.refId = refId;
-    result.ref_id = refId;
-  }
+  if (refId) result.ref_id = refId;
   if (title) result.title = title;
   if (snippet) result.snippet = snippet;
   if (domain) result.domain = domain;
@@ -65,12 +56,9 @@ export function normalizeSearchResponseBody(body: unknown): SearchResponse {
   }
 
   const output = typeof obj.output === "string" ? obj.output : undefined;
-  const encrypted_output = typeof obj.encrypted_output === "string" ? obj.encrypted_output : undefined;
 
   return {
     output,
     results,
-    encrypted_output,
-    raw: obj,
   };
 }

@@ -1,5 +1,5 @@
-import type { SearchResponse, SearchResult } from "./normalize";
-import type { WebRunCommand } from "./commands";
+import type { SearchResponse, SearchResult } from "./normalize.js";
+import type { WebRunCommand } from "./commands.js";
 
 export interface FormattedToolOutput {
   content: Array<{ type: "text"; text: string }>;
@@ -16,14 +16,14 @@ export function cleanCitationMarkers(text: string, results: SearchResult[] = [])
 
   const refToEntryMap = new Map<string, { num: number; item: SearchResult }>();
   results.forEach((r, idx) => {
-    const ref = r.ref_id || r.refId;
+    const ref = r.ref_id;
     if (ref) {
       refToEntryMap.set(ref, { num: idx + 1, item: r });
     }
   });
 
   // 1. Matches Codex private Unicode citation markers: \uE200cite\uE202<ref>\uE201 or cite<ref>
-  let cleaned = text.replace(/[\uE000-\uE2FF]?cite[\uE000-\uE2FF]?([^\uE000-\uE2FF\r\n]+)[\uE000-\uE2FF]?/gi, (match, inner) => {
+  let cleaned = text.replace(/[\uE000-\uE2FF]?cite[\uE000-\uE2FF]?([^\uE000-\uE2FF\r\n]+)[\uE000-\uE2FF]?/gi, (_match: string, inner: string) => {
     const cleanInner = inner.trim();
     if (!cleanInner) return "";
 
@@ -39,17 +39,11 @@ export function cleanCitationMarkers(text: string, results: SearchResult[] = [])
       return entry.item.url ? formatTerminalHyperlink(entry.item.url, label) : label;
     }
 
-    const matchedResult = results.find((r) => (r.ref_id || r.refId) === cleanInner);
-    if (matchedResult && matchedResult.url) {
-      const title = matchedResult.title ? matchedResult.title : matchedResult.url;
-      return formatTerminalHyperlink(matchedResult.url, `[${cleanInner}: ${title}]`);
-    }
-
     return `[${cleanInner}]`;
   });
 
   // 2. Converts raw turn references like [turn0search0, turn2view0] into clickable OSC 8 hyperlink brackets [1] [2]
-  cleaned = cleaned.replace(/\[(turn\d+[a-z0-9_,\s]*)\]/gi, (match, inner) => {
+  cleaned = cleaned.replace(/\[(turn\d+[a-z0-9_,\s]*)\]/gi, (_match: string, inner: string) => {
     const refs = inner.split(",").map((s) => s.trim());
     const formattedRefs = refs.map((ref) => {
       if (refToEntryMap.has(ref)) {
@@ -74,7 +68,7 @@ export function formatWebToolResult(command: WebRunCommand, response: SearchResp
     // Append formatted source reference list if results exist and aren't already formatted at end
     if (response.results && response.results.length > 0 && !primaryText.includes("Sources:")) {
       const sourcesList = response.results
-        .filter((r) => r.url)
+        .filter((r): r is SearchResult & { url: string } => Boolean(r.url))
         .slice(0, 10)
         .map((r, idx) => {
           const num = idx + 1;
@@ -112,11 +106,7 @@ export function formatWebToolResult(command: WebRunCommand, response: SearchResp
     ],
     details: {
       command,
-      outputLength: primaryText.length,
-      resultCount: response.results ? response.results.length : 0,
       results: response.results,
-      encrypted_output: response.encrypted_output,
-      raw: response.raw,
     },
   };
 }
