@@ -6,14 +6,12 @@ export interface SearchResult {
   title?: string;
   snippet?: string;
   domain?: string;
-  raw?: unknown;
 }
 
 export interface SearchResponse {
   output?: string;
   results: SearchResult[];
   encrypted_output?: string;
-  raw?: Record<string, unknown>;
 }
 
 export function normalizeRawSearchResult(item: unknown): SearchResult | null {
@@ -31,9 +29,7 @@ export function normalizeRawSearchResult(item: unknown): SearchResult | null {
     return null;
   }
 
-  const result: SearchResult = {
-    raw: item,
-  };
+  const result: SearchResult = {};
 
   if (url) result.url = url;
   if (refId) {
@@ -71,6 +67,5 @@ export function normalizeSearchResponseBody(body: unknown): SearchResponse {
     output,
     results,
     encrypted_output,
-    raw: obj,
   };
 }

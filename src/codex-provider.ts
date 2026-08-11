@@ -8,7 +8,6 @@ import {
   serializeWebRunPayload,
   type WebRunCommand,
 } from "./commands";
-import { filterSearchContext, type SearchContextMode } from "./context";
 import {
   CodexAuthMissingError,
   CodexAuthExpiredError,
@@ -83,7 +82,6 @@ export interface CodexWebSearchProviderOptions {
   customFetch?: typeof fetch;
   sessionId?: string;
   model?: string;
-  defaultContextMode?: SearchContextMode;
   maxRetries?: number;
 }
 
@@ -97,7 +95,6 @@ export class CodexWebSearchProvider implements WebSearchProvider {
   private fetchImpl: typeof fetch;
   private currentSessionId: string;
   private model: string;
-  private defaultContextMode: SearchContextMode;
   private maxRetries: number;
 
   constructor(options?: CodexWebSearchProviderOptions) {
@@ -105,7 +102,6 @@ export class CodexWebSearchProvider implements WebSearchProvider {
     this.timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.fetchImpl = options?.customFetch ?? globalThis.fetch;
     this.model = options?.model ?? DEFAULT_MODEL;
-    this.defaultContextMode = options?.defaultContextMode ?? "none";
     this.maxRetries = options?.maxRetries ?? 2;
     this.currentSessionId =
       options?.sessionId ?? `search_session_${Math.random().toString(36).substring(2, 10)}`;
@@ -136,7 +132,7 @@ export class CodexWebSearchProvider implements WebSearchProvider {
     const validatedCmd = validateWebRunCommand(command);
     const auth = loadCodexAuth();
     if (!auth) {
-      throw new CodexAuthMissingError();
+      throw CodexAuthMissingError();
     }
 
     const controller = new AbortController();
@@ -144,7 +140,7 @@ export class CodexWebSearchProvider implements WebSearchProvider {
 
     if (signal) {
       if (signal.aborted) {
-        throw new WebSearchCancelledError();
+        throw WebSearchCancelledError();
       }
       signal.addEventListener("abort", () => controller.abort(), { once: true });
     }
@@ -161,15 +157,9 @@ export class CodexWebSearchProvider implements WebSearchProvider {
     }
 
     const sessionId = options?.sessionId ?? this.currentSessionId;
-    const contextMode = options?.contextMode ?? this.defaultContextMode;
-    const filteredContext = options?.conversationTurns
-      ? filterSearchContext(options.conversationTurns, contextMode)
-      : [];
-
     const payload = serializeWebRunPayload(validatedCmd, {
       sessionId,
       model: this.model,
-      context: filteredContext.length > 0 ? filteredContext : undefined,
     });
 
     const startTime = Date.now();
@@ -206,7 +196,7 @@ export class CodexWebSearchProvider implements WebSearchProvider {
       }
 
       if (!response) {
-        throw new CodexHttpError(500, "No response received");
+        throw CodexHttpError(500, "No response received");
       }
 
       const elapsedMs = Date.now() - startTime;
@@ -215,14 +205,14 @@ export class CodexWebSearchProvider implements WebSearchProvider {
         if (process.env.PI_WEB_SEARCH_DEBUG) {
           console.error(`[PI_WEB_SEARCH_DEBUG] req_id=${requestId} status=${response.status} auth_failed`);
         }
-        throw new CodexAuthExpiredError();
+        throw CodexAuthExpiredError();
       }
 
       if (response.status === 429) {
         if (process.env.PI_WEB_SEARCH_DEBUG) {
           console.error(`[PI_WEB_SEARCH_DEBUG] req_id=${requestId} status=429 rate_limited`);
         }
-        throw new CodexRateLimitError();
+        throw CodexRateLimitError();
       }
 
       if (!response.ok) {
@@ -230,7 +220,7 @@ export class CodexWebSearchProvider implements WebSearchProvider {
         if (process.env.PI_WEB_SEARCH_DEBUG) {
           console.error(`[PI_WEB_SEARCH_DEBUG] req_id=${requestId} status=${response.status} error="${text}"`);
         }
-        throw new CodexHttpError(response.status, text.slice(0, 200));
+        throw CodexHttpError(response.status, text.slice(0, 200));
       }
 
       const body = await response.json();
@@ -246,9 +236,9 @@ export class CodexWebSearchProvider implements WebSearchProvider {
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "AbortError") {
         if (controller.signal.reason === "timeout") {
-          throw new WebSearchTimeoutError(this.timeoutMs);
+          throw WebSearchTimeoutError(this.timeoutMs);
         }
-        throw new WebSearchCancelledError();
+        throw WebSearchCancelledError();
       }
       if (err instanceof Error && "code" in err && typeof (err as { code: unknown }).code === "string") {
         throw err;

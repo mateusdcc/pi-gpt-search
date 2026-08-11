@@ -17,7 +17,7 @@ test("web-tool - describeCommandStatus formats readable action summaries", () =>
   );
 });
 
-test("web-tool - renderCall and renderResult render collapsed and expanded states", () => {
+test("web-tool - tools expose themed renderResult producing structured sections", () => {
   const fakeProvider = {
     async execute() {
       return { results: [] };
@@ -32,28 +32,69 @@ test("web-tool - renderCall and renderResult render collapsed and expanded state
   };
 
   const tool = createWebTool(fakeProvider);
+  const compat = createWebSearchCompatTool(fakeProvider);
+  assert.equal(typeof tool.renderResult, "function");
+  assert.equal(typeof compat.renderResult, "function");
 
-  // Test renderCall
-  const callComp = tool.renderCall!({ search_query: [{ q: "rust release" }] }, {} as any, {} as any);
-  assert.ok(callComp);
+  const theme = {
+    fg: (c: string, t: string) => t,
+    bold: (t: string) => t,
+    status: { success: "\u2713" },
+    tree: { branch: "\u251c", last: "\u2514" },
+  } as any;
 
-  // Test collapsed renderResult
-  const collapsedComp = tool.renderResult!(
-    { content: [{ type: "text", text: "Full content" }], details: { resultCount: 5 } },
-    { expanded: false },
-    {} as any,
-    {} as any
-  );
-  assert.ok(collapsedComp);
+  const result = {
+    details: {
+      query: "rust",
+      resultCount: 2,
+      results: [
+        { title: "Rust Blog", url: "https://blog.rust-lang.org/", snippet: "Rust 1.96 release notes" },
+        { title: "Rust Docs", url: "https://doc.rust-lang.org/", snippet: "Standard library docs" },
+      ],
+      output: "Rust 1.96 is the latest stable release.",
+    },
+    content: [{ type: "text", text: "" }],
+    isError: false,
+  } as any;
 
-  // Test expanded renderResult
-  const expandedComp = tool.renderResult!(
-    { content: [{ type: "text", text: "Full content output" }], details: { resultCount: 5 } },
-    { expanded: true },
-    {} as any,
-    {} as any
-  );
-  assert.ok(expandedComp);
+  const rendered = tool.renderResult!(result, { expanded: true, isPartial: false }, theme) as any;
+  assert.equal(typeof rendered.render, "function");
+  const out = rendered.render(80).join("\n");
+  assert.ok(out.includes("web"));
+  assert.ok(out.includes("Query:"));
+  assert.ok(out.includes("Rust 1.96"));
+  assert.ok(out.includes("Sources"));
+  assert.ok(out.includes("[1]"));
+  assert.ok(out.includes("Rust Blog"));
+  assert.ok(out.includes("(blog.rust-lang.org)"));
+  assert.ok(out.includes("Rust 1.96 release notes"));
+
+  // Collapsed caps at 6 sources and shows the expand hint.
+  const many = {
+    details: {
+      query: "rust",
+      resultCount: 8,
+      results: Array.from({ length: 8 }, (_, i) => ({
+        title: `Source ${i + 1}`,
+        url: `https://example.com/${i}`,
+        snippet: `Snippet ${i + 1}`,
+      })),
+    },
+    content: [{ type: "text", text: "" }],
+    isError: false,
+  } as any;
+  const collapsed = tool.renderResult!(many, { expanded: false, isPartial: false }, theme) as any;
+  const collapsedOut = collapsed.render(80).join("\n");
+  assert.ok(collapsedOut.includes("2 more results"));
+  assert.ok(collapsedOut.includes("Ctrl+O to expand"));
+
+  // Error results render without throwing.
+  const errorOut = tool.renderResult!(
+    { content: [{ type: "text", text: "boom" }], isError: true, details: {} } as any,
+    { expanded: true, isPartial: false },
+    theme
+  ) as any;
+  assert.ok(errorOut.render(80).join("\n").includes("boom"));
 });
 
 test("web-tool - createWebTool invokes onUpdate progress handler", async () => {

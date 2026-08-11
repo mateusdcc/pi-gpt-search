@@ -9,7 +9,7 @@ import {
   WebSearchTimeoutError,
   WebSearchCancelledError,
 } from "../src/errors";
-import { formatSearchResponseText, createWebSearchTool } from "../src/tool";
+import { formatSearchResponseText } from "../src/web-tool";
 
 test("normalizeRawSearchResult - valid item", () => {
   const item = {
@@ -27,7 +27,6 @@ test("normalizeRawSearchResult - valid item", () => {
   assert.equal(normalized?.domain, "rust-lang.org");
   assert.equal(normalized?.refId, "turn1search0");
   assert.equal(normalized?.ref_id, "turn1search0");
-  assert.deepEqual(normalized?.raw, item);
 });
 
 test("normalizeRawSearchResult - empty item returns null", () => {
@@ -50,7 +49,6 @@ test("normalizeSearchResponseBody - handles raw results and preserves output", (
   assert.equal(normalized.results.length, 2);
   assert.equal(normalized.results[0].url, "https://example.com/1");
   assert.equal(normalized.results[1].url, "https://example.com/2");
-  assert.deepEqual(normalized.raw, body);
 });
 
 test("formatSearchResponseText - empty results", () => {
@@ -70,23 +68,11 @@ test("formatSearchResponseText - non-empty results", () => {
   assert.match(formatted, /Rust home/);
 });
 
-test("WebSearchError classes have correct codes", () => {
-  assert.equal(new CodexAuthMissingError().code, "CODEX_AUTH_MISSING");
-  assert.equal(new CodexAuthExpiredError().code, "CODEX_AUTH_EXPIRED");
-  assert.equal(new CodexRateLimitError().code, "CODEX_RATE_LIMIT");
-  assert.equal(new CodexHttpError(500, "Internal Server Error").code, "CODEX_HTTP_ERROR");
-  assert.equal(new WebSearchTimeoutError(5000).code, "WEB_SEARCH_TIMEOUT");
-  assert.equal(new WebSearchCancelledError().code, "WEB_SEARCH_CANCELLED");
-});
-
-test("createWebSearchTool returns correct tool definition", () => {
-  const fakeProvider = {
-    async search() {
-      return { results: [] };
-    },
-  };
-  const tool = createWebSearchTool(fakeProvider);
-  assert.equal(tool.name, "codex-search");
-  assert.ok(tool.description.includes("Search the public web"));
-  assert.ok(tool.promptGuidelines?.[0].includes("codex-search"));
+test("WebSearchError factories have correct codes", () => {
+  assert.equal(CodexAuthMissingError().code, "CODEX_AUTH_MISSING");
+  assert.equal(CodexAuthExpiredError().code, "CODEX_AUTH_EXPIRED");
+  assert.equal(CodexRateLimitError().code, "CODEX_RATE_LIMIT");
+  assert.equal(CodexHttpError(500, "Internal Server Error").code, "CODEX_HTTP_ERROR");
+  assert.equal(WebSearchTimeoutError(5000).code, "WEB_SEARCH_TIMEOUT");
+  assert.equal(WebSearchCancelledError().code, "WEB_SEARCH_CANCELLED");
 });

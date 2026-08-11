@@ -163,7 +163,6 @@ export function validateWebRunCommand(cmd: unknown): WebRunCommand {
 export interface EndpointPayloadOptions {
   sessionId?: string;
   model?: string;
-  context?: unknown[];
 }
 
 export function serializeWebRunPayload(command: WebRunCommand, options?: EndpointPayloadOptions): Record<string, unknown> {
@@ -190,10 +189,6 @@ export function serializeWebRunPayload(command: WebRunCommand, options?: Endpoin
     model: options?.model ?? "gpt-4o",
     commands: commandsObj,
   };
-
-  if (options?.context && Array.isArray(options.context) && options.context.length > 0) {
-    payload.context = options.context;
-  }
 
   return payload;
 }

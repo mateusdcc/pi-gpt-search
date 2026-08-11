@@ -115,8 +115,8 @@ export function formatWebToolResult(command: WebRunCommand, response: SearchResp
       outputLength: primaryText.length,
       resultCount: response.results ? response.results.length : 0,
       results: response.results,
+      output: response.output,
       encrypted_output: response.encrypted_output,
-      raw: response.raw,
     },
   };
 }

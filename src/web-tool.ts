@@ -1,10 +1,24 @@
 import type { ToolDefinition } from "@earendil-works/pi-coding-agent";
-import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import type { WebSearchProvider } from "./provider";
 import type { WebRunCommand } from "./commands";
+import type { SearchResponse } from "./normalize";
 import { formatWebToolResult } from "./output";
-import { formatSearchResponseText } from "./tool";
+import { makeWebToolRenderer } from "./render.js";
+
+export function formatSearchResponseText(query: string, response: SearchResponse): string {
+  if (!response.results || response.results.length === 0) {
+    return `No web search results found for: "${query}".`;
+  }
+
+  const formattedResults = response.results.map((item, idx) => {
+    const title = item.title ? item.title : item.url;
+    const snippet = item.snippet ? `   ${item.snippet}` : "";
+    return `${idx + 1}. ${title}\n   URL: ${item.url}${snippet ? "\n" + snippet : ""}`;
+  });
+
+  return `Search results for: "${query}"\n\n${formattedResults.join("\n\n")}`;
+}
 
 export const BROWSING_GUIDELINES = [
   "Use the 'web' research harness for current facts, library releases, documentation, code repositories, APIs, or niche technical queries.",
@@ -119,36 +133,7 @@ export function createWebTool(provider: WebSearchProvider): ToolDefinition {
         };
       }
     },
-    renderCall(args, theme, _context) {
-      const command = args as WebRunCommand;
-      const statusMsg = describeCommandStatus(command);
-      const title = theme?.fg ? theme.fg("toolTitle", theme.bold("web ")) : "web ";
-      const status = theme?.fg ? theme.fg("muted", statusMsg) : statusMsg;
-      return new Text(title + status, 0, 0);
-    },
-    renderResult(result, options, theme, _context) {
-      const { expanded } = options || {};
-      const isError = result.isError || result.details?.error;
-      const resultCount = (result.details?.resultCount as number) ?? 0;
-
-      if (isError) {
-        const errorText = theme?.fg
-          ? theme.fg("error", `✖ Web action failed: ${result.details?.error ?? "Error"}`)
-          : `✖ Web action failed`;
-        return new Text(errorText, 0, 0);
-      }
-
-      if (!expanded) {
-        const successHeader = theme?.fg
-          ? theme.fg("success", `✓ Web action complete (${resultCount} results) `)
-          : `✓ Web action complete (${resultCount} results) `;
-        const hint = theme?.fg ? theme.fg("dim", "(Ctrl+O to expand)") : "(Ctrl+O to expand)";
-        return new Text(successHeader + hint, 0, 0);
-      }
-
-      const fullText = result.content?.[0]?.text ?? "";
-      return new Text(fullText, 0, 0);
-    },
+    renderResult: makeWebToolRenderer("web"),
   };
 }
 
@@ -194,34 +179,6 @@ export function createWebSearchCompatTool(provider: WebSearchProvider): ToolDefi
         };
       }
     },
-    renderCall(args, theme, _context) {
-      const query = (args as { query?: string }).query ?? "";
-      const title = theme?.fg ? theme.fg("toolTitle", theme.bold("codex-search ")) : "codex-search ";
-      const status = theme?.fg ? theme.fg("muted", `Searching web for "${query}"...`) : `Searching web for "${query}"...`;
-      return new Text(title + status, 0, 0);
-    },
-    renderResult(result, options, theme, _context) {
-      const { expanded } = options || {};
-      const isError = result.isError || result.details?.error;
-      const resultCount = (result.details?.resultCount as number) ?? 0;
-
-      if (isError) {
-        const errorText = theme?.fg
-          ? theme.fg("error", `✖ Search failed: ${result.details?.error ?? "Error"}`)
-          : `✖ Search failed`;
-        return new Text(errorText, 0, 0);
-      }
-
-      if (!expanded) {
-        const successHeader = theme?.fg
-          ? theme.fg("success", `✓ Search complete (${resultCount} results) `)
-          : `✓ Search complete (${resultCount} results) `;
-        const hint = theme?.fg ? theme.fg("dim", "(Ctrl+O to expand)") : "(Ctrl+O to expand)";
-        return new Text(successHeader + hint, 0, 0);
-      }
-
-      const fullText = result.content?.[0]?.text ?? "";
-      return new Text(fullText, 0, 0);
-    },
+    renderResult: makeWebToolRenderer("codex-search"),
   };
 }
