@@ -1,4 +1,4 @@
-import { Type } from "typebox";
+import { Type } from "@sinclair/typebox";
 
 export const BROWSING_GUIDELINES = [
   "Use the 'codex-research' harness for current facts, library releases, documentation, code repositories, APIs, or niche technical queries.",
