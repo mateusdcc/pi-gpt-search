@@ -1,6 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { CodexWebSearchProvider } from "../src/codex-provider";
+import {
+  CodexAuthExpiredError,
+  CodexRateLimitError,
+  CodexHttpError,
+  WebSearchTimeoutError,
+  WebSearchCancelledError,
+} from "../src/errors";
 
 test("provider-integration: success 200 OK with results", async () => {
   const customFetch: typeof fetch = async () => {
@@ -59,7 +66,7 @@ test("provider-integration: 401 returns CodexAuthExpiredError", async () => {
     async () => {
       await provider.search({ query: "test" });
     },
-    (err: unknown) => (err as { code?: string }).code === "CODEX_AUTH_EXPIRED"
+    (err: unknown) => err instanceof CodexAuthExpiredError && err.code === "CODEX_AUTH_EXPIRED"
   );
 });
 
@@ -73,7 +80,7 @@ test("provider-integration: 403 returns CodexAuthExpiredError", async () => {
     async () => {
       await provider.search({ query: "test" });
     },
-    (err: unknown) => (err as { code?: string }).code === "CODEX_AUTH_EXPIRED"
+    (err: unknown) => err instanceof CodexAuthExpiredError && err.code === "CODEX_AUTH_EXPIRED"
   );
 });
 
@@ -87,7 +94,7 @@ test("provider-integration: 429 returns CodexRateLimitError", async () => {
     async () => {
       await provider.search({ query: "test" });
     },
-    (err: unknown) => (err as { code?: string }).code === "CODEX_RATE_LIMIT"
+    (err: unknown) => err instanceof CodexRateLimitError && err.code === "CODEX_RATE_LIMIT"
   );
 });
 
@@ -101,7 +108,8 @@ test("provider-integration: 500 returns CodexHttpError", async () => {
     async () => {
       await provider.search({ query: "test" });
     },
-    (err: unknown) => (err as { code?: string }).code === "CODEX_HTTP_ERROR"
+    (err: unknown) =>
+      err instanceof CodexHttpError && err.statusCode === 500 && err.code === "CODEX_HTTP_ERROR"
   );
 });
 
@@ -124,7 +132,7 @@ test("provider-integration: timeout throws WebSearchTimeoutError", async () => {
     async () => {
       await provider.search({ query: "test" });
     },
-    (err: unknown) => (err as { code?: string }).code === "WEB_SEARCH_TIMEOUT"
+    (err: unknown) => err instanceof WebSearchTimeoutError && err.code === "WEB_SEARCH_TIMEOUT"
   );
 });
 
@@ -141,6 +149,6 @@ test("provider-integration: manual cancellation throws WebSearchCancelledError",
     async () => {
       await provider.search({ query: "test" }, controller.signal);
     },
-    (err: unknown) => (err as { code?: string }).code === "WEB_SEARCH_CANCELLED"
+    (err: unknown) => err instanceof WebSearchCancelledError && err.code === "WEB_SEARCH_CANCELLED"
   );
 });

@@ -141,7 +141,7 @@ export class CodexWebSearchProvider implements WebSearchProvider {
     const validatedCmd = validateWebRunCommand(command);
     const auth = loadCodexAuth();
     if (!auth) {
-      throw CodexAuthMissingError();
+      throw new CodexAuthMissingError();
     }
 
     const controller = new AbortController();
@@ -149,7 +149,7 @@ export class CodexWebSearchProvider implements WebSearchProvider {
 
     if (signal) {
       if (signal.aborted) {
-        throw WebSearchCancelledError();
+        throw new WebSearchCancelledError();
       }
       signal.addEventListener("abort", () => controller.abort(), { once: true });
     }
@@ -205,7 +205,7 @@ export class CodexWebSearchProvider implements WebSearchProvider {
       }
 
       if (!response) {
-        throw CodexHttpError(500, "No response received");
+        throw new CodexHttpError(500, "No response received");
       }
 
       const elapsedMs = Date.now() - startTime;
@@ -214,14 +214,14 @@ export class CodexWebSearchProvider implements WebSearchProvider {
         if (process.env.PI_WEB_SEARCH_DEBUG) {
           console.error(`[PI_WEB_SEARCH_DEBUG] req_id=${requestId} status=${response.status} auth_failed`);
         }
-        throw CodexAuthExpiredError();
+        throw new CodexAuthExpiredError();
       }
 
       if (response.status === 429) {
         if (process.env.PI_WEB_SEARCH_DEBUG) {
           console.error(`[PI_WEB_SEARCH_DEBUG] req_id=${requestId} status=429 rate_limited`);
         }
-        throw CodexRateLimitError();
+        throw new CodexRateLimitError();
       }
 
       if (!response.ok) {
@@ -229,7 +229,7 @@ export class CodexWebSearchProvider implements WebSearchProvider {
         if (process.env.PI_WEB_SEARCH_DEBUG) {
           console.error(`[PI_WEB_SEARCH_DEBUG] req_id=${requestId} status=${response.status} error="${text}"`);
         }
-        throw CodexHttpError(response.status, text.slice(0, 200));
+        throw new CodexHttpError(response.status, text.slice(0, 200));
       }
 
       const body = await response.json();
@@ -245,9 +245,9 @@ export class CodexWebSearchProvider implements WebSearchProvider {
     } catch (err: unknown) {
       if (err instanceof Error && err.name === "AbortError") {
         if (controller.signal.reason === "timeout") {
-          throw WebSearchTimeoutError(this.timeoutMs);
+          throw new WebSearchTimeoutError(this.timeoutMs);
         }
-        throw WebSearchCancelledError();
+        throw new WebSearchCancelledError();
       }
       throw err;
     } finally {

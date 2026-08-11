@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { normalizeRawSearchResult, normalizeSearchResponseBody } from "../src/normalize";
 import {
+  WebSearchError,
   CodexAuthMissingError,
   CodexAuthExpiredError,
   CodexRateLimitError,
@@ -9,7 +10,7 @@ import {
   WebSearchTimeoutError,
   WebSearchCancelledError,
 } from "../src/errors";
-import { formatSearchResponseText } from "../src/web-tool";
+import { formatSearchResponseText } from "../src/web-format";
 
 test("normalizeRawSearchResult - valid item", () => {
   const item = {
@@ -67,11 +68,40 @@ test("formatSearchResponseText - non-empty results", () => {
   assert.match(formatted, /Rust home/);
 });
 
-test("WebSearchError factories have correct codes", () => {
-  assert.equal(CodexAuthMissingError().code, "CODEX_AUTH_MISSING");
-  assert.equal(CodexAuthExpiredError().code, "CODEX_AUTH_EXPIRED");
-  assert.equal(CodexRateLimitError().code, "CODEX_RATE_LIMIT");
-  assert.equal(CodexHttpError(500, "Internal Server Error").code, "CODEX_HTTP_ERROR");
-  assert.equal(WebSearchTimeoutError(5000).code, "WEB_SEARCH_TIMEOUT");
-  assert.equal(WebSearchCancelledError().code, "WEB_SEARCH_CANCELLED");
+test("WebSearchError subclasses are typed with distinct names, codes, and statusCode", () => {
+  const authMissing = new CodexAuthMissingError();
+  assert.ok(authMissing instanceof WebSearchError);
+  assert.ok(authMissing instanceof Error);
+  assert.equal(authMissing.name, "CodexAuthMissingError");
+  assert.equal(authMissing.code, "CODEX_AUTH_MISSING");
+
+  const authExpired = new CodexAuthExpiredError();
+  assert.ok(authExpired instanceof WebSearchError);
+  assert.equal(authExpired.name, "CodexAuthExpiredError");
+  assert.equal(authExpired.code, "CODEX_AUTH_EXPIRED");
+
+  const rateLimited = new CodexRateLimitError();
+  assert.ok(rateLimited instanceof WebSearchError);
+  assert.equal(rateLimited.name, "CodexRateLimitError");
+  assert.equal(rateLimited.code, "CODEX_RATE_LIMIT");
+
+  const http = new CodexHttpError(500, "Internal Server Error");
+  assert.ok(http instanceof WebSearchError);
+  assert.equal(http.name, "CodexHttpError");
+  assert.equal(http.code, "CODEX_HTTP_ERROR");
+  assert.equal(http.statusCode, 500);
+
+  const timeout = new WebSearchTimeoutError(5000);
+  assert.ok(timeout instanceof WebSearchError);
+  assert.equal(timeout.name, "WebSearchTimeoutError");
+  assert.equal(timeout.code, "WEB_SEARCH_TIMEOUT");
+
+  const cancelled = new WebSearchCancelledError();
+  assert.ok(cancelled instanceof WebSearchError);
+  assert.equal(cancelled.name, "WebSearchCancelledError");
+  assert.equal(cancelled.code, "WEB_SEARCH_CANCELLED");
+
+  // Distinct subclasses are not interchangeable.
+  assert.ok(!(authExpired instanceof CodexRateLimitError));
+  assert.ok(!(http instanceof CodexAuthExpiredError));
 });
