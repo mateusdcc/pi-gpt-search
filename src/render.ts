@@ -2,7 +2,6 @@ import { Text } from "@earendil-works/pi-tui";
 import type { Component } from "@earendil-works/pi-tui";
 import type { AgentToolResult, Theme, ToolRenderResultOptions } from "@earendil-works/pi-coding-agent";
 import type { SearchResult } from "./normalize.js";
-import { cleanCitationMarkers } from "./output.js";
 
 /**
  * Host Theme accessors available at render time beyond the legacy `Theme`
@@ -15,7 +14,8 @@ interface RichTheme extends Theme {
   tree?: { branch?: string; last?: string };
 }
 
-const MAX_COLLAPSED = 6;
+const MAX_ANSWER = 3; // results shown in the Answer section (top hits)
+const MAX_SOURCES = 6; // index rows shown when collapsed
 
 function domainOf(url: string | undefined): string {
   if (!url) return "";
@@ -57,54 +57,59 @@ export function makeWebToolRenderer(title: string) {
 
       // Header: status icon + bold tool name + result count.
       const icon = theme.status?.success ?? "";
-      const label = theme.fg("toolTitle", theme.bold ? theme.bold(title) : title);
+      const label = theme.fg("toolTitle", theme.bold(title));
       const count =
         results.length > 0
           ? theme.fg("muted", `\u00b7 ${results.length} source${results.length === 1 ? "" : "s"}`)
           : "";
-      const header = `${theme.fg("accent", icon)} ${label}${count ? " " + count : ""}`;
-
-      const lines: string[] = [header];
+      const lines: string[] = [`${theme.fg("accent", icon)} ${label}${count ? " " + count : ""}`];
 
       // Query line.
       if (query) {
         lines.push(`${theme.fg("muted", "Query:")} ${theme.fg("text", query)}`);
       }
 
-      // Answer block (free-text output), capped when collapsed.
-      const answer = cleanCitationMarkers(details.output?.trim() ?? "", results);
-      if (answer) {
+      // Answer: the top hits, with title/domain/URL/snippet — the actual
+      // content of the search, from structured results (not the raw
+      // transcript, which carries wordlim/Published/Crawled metadata noise).
+      const top = results.slice(0, MAX_ANSWER);
+      if (top.length > 0) {
         lines.push(theme.fg("toolTitle", "Answer"));
-        const answerLines = answer.split("\n").filter((l) => l.trim());
-        const shown = expanded ? answerLines : answerLines.slice(0, 3);
-        for (const l of shown) {
-          lines.push(` ${theme.fg("text", l)}`);
-        }
-        if (!expanded && answerLines.length > shown.length) {
-          const more = answerLines.length - shown.length;
-          lines.push(` ${theme.fg("muted", `\u2026 ${more} more lines`)}`);
+        for (const [i, r] of top.entries()) {
+          const num = theme.fg("accent", `[${i + 1}]`);
+          const name = r.title ? r.title : r.url ? r.url : "Untitled";
+          const domain = domainOf(r.url);
+          const meta = domain ? ` ${theme.fg("dim", `(${domain})`)}` : "";
+          lines.push(` ${num} ${theme.fg("text", name)}${meta}`);
+          if (r.url) {
+            lines.push(`   ${theme.fg("dim", truncate(r.url, 100))}`);
+          }
+          if (r.snippet) {
+            lines.push(`   ${theme.fg("muted", truncate(r.snippet, 180))}`);
+          }
         }
       }
 
-      // Sources list (numbered tree), capped when collapsed.
+      // Sources: the full index. Collapsed shows MAX_SOURCES rows + hint;
+      // expanded shows everything. Index rows carry no snippet so the
+      // expanded view stays scannable at 42+ results.
       if (results.length > 0) {
         lines.push(theme.fg("toolTitle", "Sources"));
-        const shown = expanded ? results : results.slice(0, MAX_COLLAPSED);
-        const branch = theme.tree?.branch ?? "\u251c";
-        const last = theme.tree?.last ?? "\u2514";
+        const shown = expanded ? results : results.slice(0, MAX_SOURCES);
+        const branch = theme.tree?.branch ?? "\u251c\u2500";
+        const last = theme.tree?.last ?? "\u2514\u2500";
         for (let i = 0; i < shown.length; i++) {
           const r = shown[i];
           const num = theme.fg("accent", `[${i + 1}]`);
-          const titleText = r.title ? r.title : r.url ? r.url : "Untitled";
-          const title = theme.fg("text", titleText);
+          const name = r.title ? r.title : r.url ? r.url : "Untitled";
           const domain = domainOf(r.url);
-          const meta = domain.length > 0 ? ` ${theme.fg("dim", `(${domain})`)}` : "";
-          const glyph = i === shown.length - 1 ? last : branch;
-          lines.push(` ${theme.fg("dim", glyph)} ${num} ${title}${meta}`);
-          const snippet = r.snippet?.trim();
-          if (snippet) {
-            lines.push(`   ${theme.fg("muted", truncate(snippet, 160))}`);
-          }
+          const meta = domain ? ` ${theme.fg("dim", `(${domain})`)}` : "";
+          // Last shown row uses the last glyph only when the tree really ends
+          // there; with more results collapsed below, it's a branch so the
+          // expand hint continues the tree.
+          const hasMore = !expanded && results.length > shown.length;
+          const glyph = i === shown.length - 1 && !hasMore ? last : branch;
+          lines.push(` ${theme.fg("dim", glyph)} ${num} ${theme.fg("text", name)}${meta}`);
         }
         if (!expanded && results.length > shown.length) {
           const remaining = results.length - shown.length;
@@ -112,7 +117,7 @@ export function makeWebToolRenderer(title: string) {
             ` ${theme.fg("dim", last)} ${theme.fg("muted", `\u2026 ${remaining} more result${remaining === 1 ? "" : "s"} (Ctrl+O to expand)`)}`
           );
         }
-      } else if (!answer) {
+      } else if (top.length === 0) {
         lines.push(theme.fg("muted", "No sources returned"));
       }
 
