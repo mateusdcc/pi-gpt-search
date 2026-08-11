@@ -85,12 +85,6 @@ pi --model antigravity/gemini-3.5-flash "What is the latest release of Rust and 
 
 Accepts `query` plus optional `recency` (filter in days), `domains` (allowlist), and `response_length` (`short`/`medium`/`long`, **default: `short`**).
 
-### 4. Legacy Alias: `web` (deprecated)
-
-The pre-rename tool name `web` is kept as a backward-compatible alias. It delegates to the same implementation as `codex-research` and prepends a deprecation notice on every invocation. New integrations should use `codex-research` directly.
-
----
-
 ## Example Log Output (with `PI_WEB_SEARCH_DEBUG=1`):
 
 ```text
@@ -132,6 +126,10 @@ And pattern matching within opened documents:
   ]
 }
 ```
+
+### 4. Legacy Alias: `web` (deprecated)
+
+The pre-rename tool name `web` is kept as a backward-compatible alias. It delegates to the same implementation as `codex-research` and prepends a deprecation notice on every invocation. New integrations should use `codex-research` directly.
 
 ---
 
