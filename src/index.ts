@@ -1,9 +1,9 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { CodexWebSearchProvider } from "./codex-provider";
-import { createResearchTool } from "./research-tool";
-import { createSearchTool } from "./search-tool";
-import { createLegacyWebTool } from "./legacy-web-tool";
-import { formatWebToolResult } from "./output";
+import { CodexWebSearchProvider } from "./codex-provider.js";
+import { createResearchTool } from "./research-tool.js";
+import { createSearchTool } from "./search-tool.js";
+import { createLegacyWebTool } from "./legacy-web-tool.js";
+import { formatWebToolResult } from "./output.js";
 
 export default function (pi: ExtensionAPI) {
   const provider = new CodexWebSearchProvider();

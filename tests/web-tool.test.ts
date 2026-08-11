@@ -103,6 +103,32 @@ test("web-tool - tools expose themed renderResult producing structured sections"
   assert.ok(errorOut.includes("boom"));
 });
 
+test("web-tool - expanded renderer does not duplicate formatted sources", async () => {
+  const provider = {
+    ...fakeProvider,
+    async execute() {
+      return {
+        output: "Backend answer",
+        results: [{ title: "Example", url: "https://example.com", ref_id: "turn0search0" }],
+      };
+    },
+  };
+  const tool = createResearchTool(provider);
+  const result = await tool.execute(
+    "call_sources",
+    { search_query: [{ q: "test" }] },
+    undefined,
+    undefined,
+    {} as any
+  );
+
+  const output = renderTool(tool, result, true);
+  const sourceHeadings = output
+    .split("\n")
+    .filter((line) => line.trim() === "Sources" || line.trim() === "Sources:");
+  assert.equal(sourceHeadings.length, 1);
+});
+
 test("web-tool - expanded renderer shows actual open/find/click backend content", () => {
   const tool = createResearchTool(fakeProvider);
 
@@ -270,4 +296,23 @@ test("web-tool - createSearchTool translates query into search and calls onUpdat
     response_length: "short",
   });
   assert.match(res.content[0].text, /Result/);
+
+  await compatTool.execute(
+    "call_3",
+    {
+      query: "release notes",
+      recency: 30,
+      domains: ["example.com"],
+      response_length: "medium",
+    },
+    undefined,
+    undefined,
+    {} as any
+  );
+  assert.deepEqual(searchCalledWith, {
+    query: "release notes",
+    recency: 30,
+    domains: ["example.com"],
+    response_length: "medium",
+  });
 });

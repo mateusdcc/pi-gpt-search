@@ -28,6 +28,28 @@ test("provider-integration: success 200 OK with results", async () => {
   assert.equal(res.results[0].url, "https://example.com");
 });
 
+test("provider-integration: search serializes filters and response length", async () => {
+  let capturedBody: Record<string, unknown> | null = null;
+  const customFetch: typeof fetch = async (_url, options) => {
+    capturedBody = JSON.parse((options?.body as string) || "{}");
+    return new Response(JSON.stringify({ results: [] }), { status: 200 });
+  };
+
+  const provider = new CodexWebSearchProvider({ customFetch });
+  await provider.search({
+    query: "release notes",
+    recency: 7,
+    domains: ["example.com"],
+    response_length: "medium",
+  });
+
+  assert.ok(capturedBody);
+  assert.deepEqual(capturedBody.commands, {
+    search_query: [{ q: "release notes", recency: 7, domains: ["example.com"] }],
+    response_length: "medium",
+  });
+});
+
 test("provider-integration: execute serializes rich commands correctly", async () => {
   let capturedBody: Record<string, unknown> | null = null;
   const customFetch: typeof fetch = async (_url, options) => {

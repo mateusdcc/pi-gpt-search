@@ -1,14 +1,14 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
-import type { SearchRequest, SearchExecutionOptions, WebSearchProvider } from "./provider";
-import { normalizeSearchResponseBody, type SearchResponse } from "./normalize";
+import type { SearchRequest, SearchExecutionOptions, WebSearchProvider } from "./provider.js";
+import { normalizeSearchResponseBody, type SearchResponse } from "./normalize.js";
 import {
   validateWebRunCommand,
   serializeWebRunPayload,
   type WebRunCommand,
   type SearchQuery,
-} from "./commands";
+} from "./commands.js";
 import {
   CodexAuthMissingError,
   CodexAuthExpiredError,
@@ -16,7 +16,7 @@ import {
   CodexHttpError,
   WebSearchTimeoutError,
   WebSearchCancelledError,
-} from "./errors";
+} from "./errors.js";
 
 export interface CodexAuthCredentials {
   accessToken: string;

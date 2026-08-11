@@ -1,5 +1,5 @@
-import type { SearchResponse } from "./normalize";
-import type { WebRunCommand, ResponseLength } from "./commands";
+import type { SearchResponse } from "./normalize.js";
+import type { WebRunCommand, ResponseLength } from "./commands.js";
 
 export interface SearchRequest {
   query: string;

@@ -29,6 +29,12 @@ function truncate(text: string, max: number): string {
   return text.length > max ? text.slice(0, max - 1) + "\u2026" : text;
 }
 
+function stripSources(text: string): string {
+  const marker = "\n\nSources:\n";
+  const index = text.lastIndexOf(marker);
+  return index < 0 ? text : text.slice(0, index);
+}
+
 interface SearchDetails {
   query?: string;
   results?: SearchResult[];
@@ -73,7 +79,8 @@ export function makeWebToolRenderer(title: string) {
       // transparency), citation markers cleaned. Collapsed shows a preview;
       // expanded shows the full output (open/find/click document content).
       const rawContent = result.content?.[0]?.type === "text" ? result.content[0].text : "";
-      const content = cleanCitationMarkers(rawContent, results).trim();
+      const cleanedContent = cleanCitationMarkers(rawContent, results).trim();
+      const content = stripSources(cleanedContent).trim();
       if (content) {
         lines.push(theme.fg("toolTitle", "Results"));
         const shown = expanded ? content : truncate(content, MAX_PREVIEW);
