@@ -21,10 +21,10 @@ export function formatSearchResponseText(query: string, response: SearchResponse
 }
 
 export const BROWSING_GUIDELINES = [
-  "Use the 'web' research harness for current facts, library releases, documentation, code repositories, APIs, or niche technical queries.",
+  "Use the 'codex-research' harness for current facts, library releases, documentation, code repositories, APIs, or niche technical queries.",
   "BROWSE WHEN: user asks to search/browse/verify, info could have changed (versions, releases, docs), topic is niche/uncertain, or precise primary sources are needed.",
   "SEARCH WORKFLOW:",
-  "1. Execute initial search with web({ search_query: [{ q: '...' }] }).",
+  "1. Execute initial search with codex-research({ search_query: [{ q: '...' }] }).",
   "2. Prefer authoritative/primary sources (official docs, GitHub repos, standards, vendor docs).",
   "3. Inspect promising search results using open({ open: [{ ref_id: 'turn0search0' }] }).",
   "4. Use find({ find: [{ ref_id: '...', pattern: '...' }] }) to locate key sections in long documents.",
@@ -104,10 +104,10 @@ export function describeCommandStatus(command: WebRunCommand): string {
 
 export function createWebTool(provider: WebSearchProvider): ToolDefinition {
   return {
-    name: "web",
-    label: "Web Research Harness",
+    name: "codex-research",
+    label: "Codex Research Harness",
     description:
-      "Execute web research actions (search_query, open, find, click, response_length) against live web search & document browser engine. Use to search current information, inspect official docs, and perform iterative multi-step research.",
+      "Execute iterative web research actions (search_query, open, find, click, response_length) against live web search & document browser engine. Use to search current information, inspect official docs, and perform iterative multi-step research.",
     promptSnippet: "Perform iterative web research with search, open, find, click",
     promptGuidelines: BROWSING_GUIDELINES,
     parameters: WebToolParameters,
@@ -133,19 +133,19 @@ export function createWebTool(provider: WebSearchProvider): ToolDefinition {
         };
       }
     },
-    renderResult: makeWebToolRenderer("web"),
+    renderResult: makeWebToolRenderer("codex-research"),
   };
 }
 
 export function createWebSearchCompatTool(provider: WebSearchProvider): ToolDefinition {
   return {
     name: "codex-search",
-    label: "Codex Search (Compatibility)",
+    label: "Codex Search",
     description:
-      "Single-query Codex search compatibility tool. Translates directly into web({ search_query: [{ q: query }] }).",
+      "Single-query Codex search tool. Translates directly into codex-research({ search_query: [{ q: query }] }).",
     promptSnippet: "Search the web for current or externally verifiable information",
     promptGuidelines: [
-      "Use codex-search for simple web lookups. For iterative research (opening pages, searching patterns), use the 'web' tool instead."
+      "Use codex-search for simple web lookups. For iterative research (opening pages, searching patterns), use the 'codex-research' tool instead."
     ],
     parameters: Type.Object({
       query: Type.String({ description: "The search query to look up on the web" }),

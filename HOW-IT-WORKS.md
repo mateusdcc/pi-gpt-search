@@ -23,9 +23,9 @@ The `codex-search` tool provides a simple interface for single-query searches (t
                                            |
                                            v Tool Call: codex-search({ query: "..." })
                +-------------------------------------------------------+
-               |              codex-search Compatibility Tool            |
+               |              codex-search Search Tool                |
                |                       (web-tool.ts)                   |
-               |     - Wraps query into web({ search_query: ... })     |
+               |     - Wraps query into codex-research({ search_query: ... }) |
                |     - Emits live TUI status updates via onUpdate      |
                +---------------------------+---------------------------+
                                            |
@@ -62,9 +62,9 @@ The `codex-search` tool provides a simple interface for single-query searches (t
 
 ---
 
-### 2. Multi-Step Web Research Harness Flow (`web`)
+### 2. Multi-Step Research Harness Flow (`codex-research`)
 
-The `web` tool introduces a full research harness capability. Instead of stopping after a single search query, the active model can execute rich, multi-action research commands (`search_query`, `open`, `find`, `click`, `response_length`) across a persistent research session to investigate documents in depth.
+The `codex-research` tool introduces a full research harness capability. Instead of stopping after a single search query, the active model can execute rich, multi-action research commands (`search_query`, `open`, `find`, `click`, `response_length`) across a persistent research session to investigate documents in depth.
 
 ```text
                +-------------------------------------------------------+
@@ -77,9 +77,9 @@ The `web` tool introduces a full research harness capability. Instead of stoppin
                |      (Gemini / Claude / DeepSeek / Ollama / etc.)     |
                +---------------------------+---------------------------+
                                            |
-                                           v Tool Call: web({ search_query, open, find, click, response_length })
+                                           v Tool Call: codex-research({ search_query, open, find, click, response_length })
                +-------------------------------------------------------+
-               |                   web Research Harness                |
+               |                codex-research Research Harness        |
                |                       (web-tool.ts)                   |
                |     - Emits TUI status updates via onUpdate           |
                |     - Collapsible TUI rendering (Ctrl+O to expand)    |
@@ -125,14 +125,14 @@ The `web` tool introduces a full research harness capability. Instead of stoppin
 
 ### 1. Extension Entrypoint (`src/index.ts`)
 Handles Pi Extension registration cleanly:
-- Registers compatibility tool wrapper `codex-search`.
-- Registers primary research harness tool `web`.
+- Registers single-query search wrapper `codex-search`.
+- Registers primary research harness tool `codex-research`.
 - Registers direct user slash command `/gpt-search`.
 
 ### 2. Model-Facing Research Tools (`src/web-tool.ts`)
 Exposes both single-query search and rich research actions to any active Pi session model:
 - **Single-Query Search (`codex-search`):** Accepts `{ query: string }` and translates it into a single-query `search_query` execution.
-- **Rich Research Harness (`web`):** Supports full research actions (`search_query`, `open`, `find`, `click`, `response_length`).
+- **Rich Research Harness (`codex-research`):** Supports full research actions (`search_query`, `open`, `find`, `click`, `response_length`).
 - **TUI Progress Feedback:** Calls `onUpdate()` to report live stage descriptions (e.g. `Searching web for "query"...`, `Opening document turn0search0...`).
 - **Collapsible Display (`renderCall` & `renderResult`):** Collapses completed execution rows to a single line `✓ Web action complete (N results) (Ctrl+O to expand)`.
 - **System Guidance:** Teaches the active model when to browse, how to execute multi-step research, and how to cite sources inline.

@@ -38,7 +38,7 @@ pi -e npm:pi-gpt-search
 
 - 🚀 **Zero GPT Tokens Spent:** Pure web retrieval via OpenAI's backend endpoint. No GPT/Codex LLM turns are executed, meaning **0 input tokens, 0 output tokens, and 0 reasoning credits are billed**.
 - 👑 **Model Sovereign:** Your active Pi model (e.g., Gemini 3.5 Flash / Gemini 3.1 Pro) remains the sole reasoning model.
-- 🛠️ **Slash Command & LLM Tools:** Works both automatically as LLM tools (`codex-search` & `web`) and as a direct user command (`/gpt-search`).
+- 🛠️ **Slash Command & LLM Tools:** Works both automatically as LLM tools (`codex-search` & `codex-research`) and as a direct user command (`/gpt-search`).
 - 🔑 **Credential Reuse:** Automatically uses your existing `codex login` session (`~/.codex/auth.json`) or custom `.env` tokens.
 - 🛡️ **Data Privacy:** Query-only by default. Does not send conversation history, project files, or system prompts to search.
 
@@ -54,7 +54,7 @@ Pi Coding Agent
       │         └── Structured Results (Title, URL, Snippet)
       │              └── Gemini continues reasoning & answers user
       │
-      └── web(search_query: [...], open: [...], find: [...])
+      └── codex-research(search_query: [...], open: [...], find: [...])
            └── Multi-Step Web Research Harness
                 └── Deep document content, pattern matching & citations
 ```
@@ -90,7 +90,7 @@ pi --model antigravity/gemini-3.5-flash "What is the latest release of Rust and 
 [PI_WEB_SEARCH_DEBUG] req_id=maqk8a5 status=200 elapsed_ms=1863 results=41
 ```
 
-### 3. Advanced Web Research Harness Tool: `web`
+### 3. Advanced Research Harness Tool: `codex-research`
 
 Ask models to conduct deep, iterative web research with multi-query execution, page content inspection, pattern finding, and link navigation:
 

@@ -6,11 +6,11 @@ import { formatWebToolResult } from "./output";
 export default function (pi: ExtensionAPI) {
   const provider = new CodexWebSearchProvider();
 
-  // Register primary web research tool
+  // Register codex-research harness tool
   const webTool = createWebTool(provider);
   pi.registerTool(webTool);
 
-  // Register codex-search tool compatibility wrapper
+  // Register codex-search single-query wrapper
   const webSearchCompatTool = createWebSearchCompatTool(provider);
   pi.registerTool(webSearchCompatTool);
 

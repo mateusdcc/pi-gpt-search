@@ -60,7 +60,7 @@ test("web-tool - tools expose themed renderResult producing structured sections"
   const rendered = tool.renderResult!(result, { expanded: true, isPartial: false }, theme) as any;
   assert.equal(typeof rendered.render, "function");
   const out = rendered.render(80).join("\n");
-  assert.ok(out.includes("web"));
+  assert.ok(out.includes("codex-research"));
   assert.ok(out.includes("Query:"));
   assert.ok(out.includes("Rust 1.96"));
   assert.ok(out.includes("Sources"));
@@ -119,7 +119,7 @@ test("web-tool - createWebTool invokes onUpdate progress handler", async () => {
   };
 
   const tool = createWebTool(fakeProvider);
-  assert.equal(tool.name, "web");
+  assert.equal(tool.name, "codex-research");
 
   const res = await tool.execute(
     "call_1",
