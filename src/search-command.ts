@@ -58,7 +58,7 @@ function toSearchCommand(request: SearchToolRequest): WebRunCommand {
 }
 
 function appendOutput(pi: ExtensionAPI, text: string): void {
-  pi.appendEntry(SEARCH_OUTPUT_ENTRY_TYPE, { text });
+  pi.appendEntry?.(SEARCH_OUTPUT_ENTRY_TYPE, { text });
 }
 
 function statusFor(command: WebRunCommand): string {
@@ -91,7 +91,7 @@ function registerCommand(pi: ExtensionAPI, name: string, description: string, ha
 }
 
 export function registerSearchCommand(pi: ExtensionAPI, provider: WebSearchProvider): void {
-  pi.registerEntryRenderer(SEARCH_OUTPUT_ENTRY_TYPE, (entry, _options, theme) => {
+  pi.registerEntryRenderer?.(SEARCH_OUTPUT_ENTRY_TYPE, (entry, _options, theme) => {
     const { text } = entry.data as SearchOutputEntry;
     return new Text(theme.fg("toolOutput", text), 1, 0);
   });
