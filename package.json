@@ -27,12 +27,10 @@
   ],
   "author": "Mateus DCC",
   "license": "MIT",
-  "dependencies": {
-    "@sinclair/typebox": "^0.34.0"
-  },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",
-    "@earendil-works/pi-tui": "*"
+    "@earendil-works/pi-tui": "*",
+    "@sinclair/typebox": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
